@@ -19,23 +19,30 @@ function AppContent() {
   const uniqueConceptsFromData = useUniqueConceptsFromData(apkData, ggData);
 
   const handleFileProcessed = (rawData: unknown, type: DataType) => {
+    console.log('📥 handleFileProcessed llamado:', { type, rawDataLength: (rawData as any[])?.length });
     try {
       if (type === 'apk') {
         const validation = validateApkData(rawData as unknown[]);
+        console.log('✓ Validación APK:', validation);
         if (!validation.valid) {
           showError(validation.error || 'Datos inválidos');
           return;
         }
         const normalized = normalizeApkData(rawData as unknown[]);
+        console.log('✓ Datos APK normalizados:', normalized.length, 'registros');
         setApkData(normalized);
+        console.log('✓ setApkData llamado');
       } else {
         const validation = validateGgData(rawData as unknown[]);
+        console.log('✓ Validación GG:', validation);
         if (!validation.valid) {
           showError(validation.error || 'Datos inválidos');
           return;
         }
         const normalized = normalizeGgData(rawData as unknown[]);
+        console.log('✓ Datos GG normalizados:', normalized.length, 'registros');
         setGgData(normalized);
+        console.log('✓ setGgData llamado');
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error al normalizar datos');
@@ -54,6 +61,7 @@ function AppContent() {
         );
       
       case 'table':
+        console.log('📊 Renderizando tabla:', { apkLength: apkData.length, ggLength: ggData.length });
         return (
           <Box>
             <Typography variant="h5" gutterBottom>📊 Tabla de Datos</Typography>

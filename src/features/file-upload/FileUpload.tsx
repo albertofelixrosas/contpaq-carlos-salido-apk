@@ -69,8 +69,9 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
             const firstSheetName = workbook.SheetNames[0];
             const worksheet = workbook.Sheets[firstSheetName];
             
-            // Convertir a JSON
-            const jsonData = XLSX.utils.sheet_to_json(worksheet);
+            // Convertir a array de arrays (igual que el código vanilla)
+            // header: 1 significa que cada fila es un array en lugar de un objeto
+            const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
             
             if (jsonData.length === 0) {
               throw new Error('El archivo está vacío');

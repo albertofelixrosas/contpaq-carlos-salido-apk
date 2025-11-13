@@ -54,6 +54,7 @@ export function saveProcessData(data: ProcessData): void {
  * Guarda datos APK en localStorage
  */
 export function saveApkData(apkData: ApkRecord[], segmentNames: Set<string>): void {
+  console.log('💾 saveApkData llamado:', { dataLength: apkData.length, segments: Array.from(segmentNames) });
   const processData = getProcessData();
   
   processData.data = apkData;
@@ -62,7 +63,12 @@ export function saveApkData(apkData: ApkRecord[], segmentNames: Set<string>): vo
     count: 0,
   }));
   
+  console.log('💾 Guardando en localStorage:', { 
+    dataCount: processData.data.length, 
+    segmentsCount: processData.segments.length 
+  });
   saveProcessData(processData);
+  console.log('💾 Datos guardados exitosamente');
 }
 
 /**
@@ -70,7 +76,9 @@ export function saveApkData(apkData: ApkRecord[], segmentNames: Set<string>): vo
  */
 export function getApkData(): ApkRecord[] {
   const processData = getProcessData();
-  return processData.data || [];
+  const data = processData.data || [];
+  console.log('📖 getApkData leyendo:', data.length, 'registros');
+  return data;
 }
 
 /**

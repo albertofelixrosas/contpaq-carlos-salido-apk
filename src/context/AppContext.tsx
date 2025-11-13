@@ -44,16 +44,28 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());
 
   const setApkData = (data: ApkRecord[]) => {
+    console.log('🔵 AppContext.setApkData llamado con:', data.length, 'registros');
+    console.log('🔵 Primer registro:', data[0]);
     setApkDataState(data);
-    // Extraer segmentos únicos del campo "segmento" si existe en ApkRecord
-    // Por ahora usamos un Set vacío, se puede mejorar después
+    console.log('🔵 Estado APK actualizado');
+    // Extraer segmentos únicos del campo "vuelta" en ApkRecord
     const segmentNames = new Set<string>();
+    data.forEach(record => {
+      if (record.vuelta) {
+        segmentNames.add(record.vuelta);
+      }
+    });
+    console.log('🔵 Segmentos encontrados:', Array.from(segmentNames));
     saveApkData(data, segmentNames);
+    console.log('🔵 Datos APK guardados en localStorage');
   };
 
   const setGgData = (data: GgRecord[]) => {
+    console.log('🔵 AppContext.setGgData llamado con:', data.length, 'registros');
     setGgDataState(data);
+    console.log('🔵 Estado GG actualizado');
     saveGgData(data);
+    console.log('🔵 Datos GG guardados en localStorage');
   };
 
   const setConcepts = (newConcepts: Concept[]) => {

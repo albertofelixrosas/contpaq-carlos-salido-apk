@@ -225,17 +225,18 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
             {state.status === 'idle' && (
               <>
                 <CloudUpload sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-                <Typography variant="body1" gutterBottom>
-                  Arrastra el archivo aquí o haz clic para seleccionar
+                <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
+                  Arrastra el archivo aquí
                 </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Formatos: .xls, .xlsx (máx. 5MB)
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                  o
                 </Typography>
                 <Button
                   component="label"
                   variant="contained"
                   startIcon={<Upload />}
-                  sx={{ mt: 2 }}
+                  size="medium"
+                  sx={{ mb: 2 }}
                 >
                   Seleccionar archivo
                   <input
@@ -245,6 +246,9 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
                     onChange={(e) => handleFileChange(e, type)}
                   />
                 </Button>
+                <Typography variant="caption" color="text.secondary" display="block">
+                  Formatos: .xls, .xlsx (máx. 5MB)
+                </Typography>
               </>
             )}
 

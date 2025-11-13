@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contpaq Resume</title>
+    
+    <!-- Favicon usando emoji de carpeta -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📁</text></svg>">
+    
+     <!-- Fuente Poppins desde Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+     <!-- SheetJS para procesamiento de archivos Excel -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    
+     <!-- Hoja de estilos  -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+     <!-- Contenedor principal  -->
+    <main class="container">
+         <!-- Encabezado con título y subtítulo  -->
+        <header class="header">
+            <h1 class="title">Resumen de Contpaq</h1>
+            <p class="subtitle">Sube tu archivo y descarga el resultado</p>
+        </header>
+
+         <!-- Componente de gestión de conceptos -->
+        <section class="concepts-manager">
+            <h2 class="concepts-title collapsible-header">
+                <span class="title-text">Gestión de Conceptos</span>
+                <span class="collapse-indicator">▼</span>
+            </h2>
+            
+            <div class="concepts-content collapsible-content">
+            <div class="concepts-controls">
+                <div class="add-concept-form">
+                    <input 
+                        type="text" 
+                        id="conceptInput" 
+                        placeholder="Escribe un nuevo concepto..."
+                        class="concept-input"
+                        maxlength="100"
+                    >
+                    <button type="button" id="addConceptBtn" class="btn-add-concept">
+                        <span class="add-icon">+</span>
+                        Agregar
+                    </button>
+                </div>
+                
+                <div class="concepts-actions">
+                    <button type="button" id="clearAllConceptsBtn" class="btn-clear-all">
+                        <span class="clear-icon">🗑️</span>
+                        Limpiar Todo
+                    </button>
+                    <span class="concepts-count">
+                        Total: <span id="conceptsCounter">0</span> conceptos
+                    </span>
+                </div>
+            </div>
+
+            <div class="concepts-list-container">
+                <div id="conceptsList" class="concepts-list">
+                    <div class="empty-concepts">
+                        <p class="empty-message">No hay conceptos guardados</p>
+                        <p class="empty-hint">Agrega tu primer concepto usando el formulario de arriba</p>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </section>
+
+         <!-- Componente de sustitución masiva de conceptos -->
+        <section id="massReplacementManager" class="mass-replacement-manager hidden">
+            <h2 class="mass-replacement-title collapsible-header">
+                <span class="title-text">Sustitución Masiva de Conceptos</span>
+                <span class="collapse-indicator">▼</span>
+            </h2>
+            
+            <div class="mass-replacement-content collapsible-content">
+            <div class="mass-replacement-info">
+                <div class="data-type-indicator">
+                    <span class="data-type-label">Trabajando con datos:</span>
+                    <span id="currentDataType" class="data-type-value">-</span>
+                </div>
+                <div class="records-info">
+                    <span class="records-label">Total de registros:</span>
+                    <span id="totalRecordsCount" class="records-count">0</span>
+                </div>
+            </div>
+
+            <div class="mass-replacement-controls">
+                <!-- Panel de selección de conceptos origen -->
+                <div class="selection-panel">
+                    <h3 class="panel-title">1. Conceptos a Reemplazar</h3>
+                    <div class="concepts-selector-container">
+                        <div class="selector-header">
+                            <button id="selectAllConcepts" class="btn-select-all" type="button">
+                                Seleccionar Todos
+                            </button>
+                            <button id="clearAllSelection" class="btn-clear-selection" type="button">
+                                Limpiar Selección
+                            </button>
+                        </div>
+                        <div id="conceptsCheckboxList" class="concepts-checkbox-list">
+                            <div class="empty-concepts-data">
+                                <p class="empty-message">No hay datos cargados</p>
+                                <p class="empty-hint">Procesa un archivo para ver los conceptos disponibles</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de concepto destino -->
+                <div class="replacement-panel">
+                    <h3 class="panel-title">2. Concepto de Reemplazo</h3>
+                    <div class="replacement-selector">
+                        <label for="targetConceptSelect" class="target-label">
+                            Selecciona el concepto destino:
+                        </label>
+                        <select id="targetConceptSelect" class="target-concept-select">
+                            <option value="">Seleccionar concepto...</option>
+                        </select>
+                        <div class="target-info">
+                            <small class="info-text">
+                                Este concepto reemplazará a todos los conceptos seleccionados arriba
+                            </small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Panel de acciones -->
+                <div class="actions-panel">
+                    <h3 class="panel-title">3. Realizar Sustitución</h3>
+                    <div class="replacement-summary" id="replacementSummary">
+                        <p class="summary-text">Selecciona conceptos para ver el resumen</p>
+                    </div>
+                    <div class="action-buttons">
+                        <button id="previewReplacementBtn" class="btn-preview" type="button">
+                            👀 Vista Previa
+                        </button>
+                        <button id="executeReplacementBtn" class="btn-execute" type="button" disabled>
+                            🔄 Ejecutar Sustitución
+                        </button>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </section>
+
+         <!-- Componente de edición de segmentos -->
+        <section id="segmentEditor" class="segment-editor hidden">
+            <h2 class="segment-title">Editar Segmentos</h2>
+            <form id="segmentForm" class="segment-form">
+                <div id="segmentGrid" class="segment-grid">
+                    <!-- Los elementos se llenarán dinámicamente con JavaScript -->
+                </div>
+                <button type="submit" class="btn-submit">Aceptar</button>
+            </form>
+        </section>
+
+         <!-- Componente para mostrar cuando no hay datos en localStorage -->
+        <section id="noData" class="no-data hidden">
+            <h2 class="no-data-title">No hay datos cargados</h2>
+            <p class="no-data-message">Por favor, sube un archivo para comenzar.</p>
+        </section>
+
+         <!-- Formulario de carga de archivo  -->
+        <section class="upload-section">
+            <form id="uploadForm" class="upload-form">
+                 <!-- Input de archivo personalizado  -->
+                <div class="file-input-wrapper">
+                    <input 
+                        type="file" 
+                        id="fileInput" 
+                        accept=".xls,.xlsx" 
+                        class="file-input"
+                        required
+                    >
+                    <label for="fileInput" class="file-label">
+                        <span class="file-icon">📁</span>
+                        <span class="file-text">Seleccionar archivo Excel</span>
+                    </label>
+                    <span id="fileName" class="file-name"></span>
+                </div>
+
+                 <!-- Botón de envío  -->
+                <button type="submit" class="btn-submit">Procesar archivo</button>
+            </form>
+        </section>
+
+         <!-- Componente de Prorrateo -->
+        <section id="prorrateoSection" class="prorrateo-section hidden">
+            <h2 class="prorrateo-title collapsible-header">
+                <span class="title-text">Prorrateo de Gastos Generales</span>
+                <span class="collapse-indicator">▼</span>
+            </h2>
+            
+            <div class="prorrateo-content collapsible-content">
+                <div class="prorrateo-info">
+                    <span id="prorrateoDescription" class="prorrateo-description">Distribución proporcional de gastos entre vueltas</span>
+                </div>
+                
+                <!-- Acciones del prorrateo -->
+                <div class="prorrateo-actions-section">
+                    <div id="prorrateoActions" class="prorrateo-actions">
+                        <button id="generateProrrateoBtn" class="btn-generate">🔄 Generar Prorrateo</button>
+                        <button id="copyProrrateoBtn" class="btn-copy">📋 Copiar</button>
+                        <button id="downloadProrrateoBtn" class="btn-download">💾 Descargar</button>
+                    </div>
+                </div>
+                
+                <!-- Información del prorrateo -->
+                <div class="prorrateo-summary">
+                    <div class="summary-item">
+                        <span class="summary-label">Conceptos GG:</span>
+                        <span id="conceptsCount" class="summary-value">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Vueltas:</span>
+                        <span id="vueltasCount" class="summary-value">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Total Cerdos:</span>
+                        <span id="totalCerdos" class="summary-value">0</span>
+                    </div>
+                    <div class="summary-item">
+                        <span class="summary-label">Registros Generados:</span>
+                        <span id="registrosGenerados" class="summary-value">0</span>
+                    </div>
+                </div>
+                
+                <!-- Sección de totales del prorrateo -->
+                <div id="prorrateoTotals" class="table-totals hidden">
+                    <div class="totals-header">
+                        <h4 class="totals-title">📊 Total del Prorrateo</h4>
+                    </div>
+                    <div class="totals-grid">
+                        <div class="total-item">
+                            <span class="total-label">Total Prorrateo:</span>
+                            <span id="totalProrrateo" class="total-value">$0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="prorrateo-table-container">
+                <!-- Estado vacío -->
+                <div id="emptyProrrateoState" class="empty-prorrateo-state">
+                    <div class="empty-prorrateo-icon">📊</div>
+                    <h3 class="empty-prorrateo-title">No hay datos de prorrateo generados</h3>
+                    <p class="empty-prorrateo-message">Presiona "Generar Prorrateo" para crear la distribución de gastos</p>
+                    <div class="empty-prorrateo-hint">
+                        <small>Requiere datos APK, GG y configuración de segmentos</small>
+                    </div>
+                </div>
+                
+                <!-- Tabla de prorrateo -->
+                <table id="prorrateoTable" class="prorrateo-table hidden">
+                     <!-- La tabla se llenará dinámicamente con JavaScript  -->
+                </table>
+                </div>
+            </div>
+        </section>
+
+         <!-- Sección de tabla (siempre visible)  -->
+        <section id="tableSection" class="table-section">
+            <div class="table-header">
+                <div class="table-info">
+                    <h2 id="tableTitle" class="table-title">Datos APK</h2>
+                    <span id="tableDescription" class="table-description">Visualización de datos procesados</span>
+                </div>
+                <div id="tableActions" class="table-actions hidden">
+                    <button id="verifyBtn" class="btn-verify">Verificar</button>
+                    <button id="copyBtn" class="btn-copy">Copiar</button>
+                </div>
+            </div>
+            
+            <!-- Sección de filtros -->
+            <div id="tableFilters" class="table-filters hidden">
+                <div class="filters-header">
+                    <h3 class="filters-title">🔍 Filtros</h3>
+                    <button id="clearFiltersBtn" class="btn-clear-filters" type="button">Limpiar</button>
+                </div>
+                <div class="filters-grid">
+                    <div class="filter-item">
+                        <label for="proveedorFilter" class="filter-label">Proveedor</label>
+                        <input 
+                            type="text" 
+                            id="proveedorFilter" 
+                            class="filter-input" 
+                            placeholder="Buscar por proveedor..."
+                            autocomplete="off"
+                        >
+                    </div>
+                    <div class="filter-item">
+                        <label for="conceptoFilter" class="filter-label">Concepto</label>
+                        <select id="conceptoFilter" class="filter-select">
+                            <option value="">Todos los conceptos</option>
+                        </select>
+                    </div>
+                    <div class="filter-item" id="vueltaFilterContainer">
+                        <label for="vueltaFilter" class="filter-label">Vuelta</label>
+                        <select id="vueltaFilter" class="filter-select">
+                            <option value="">Todas las vueltas</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-results">
+                    <span id="filterResultsCount" class="results-count">0 registros encontrados</span>
+                </div>
+            </div>
+            
+            <!-- Sección de totales de la tabla -->
+            <div id="tableTotals" class="table-totals hidden">
+                <div class="totals-header">
+                    <h4 class="totals-title">📊 Resumen de Importes</h4>
+                </div>
+                <div class="totals-grid">
+                    <div class="total-item">
+                        <span class="total-label">Total General:</span>
+                        <span id="totalGeneral" class="total-value">$0.00</span>
+                    </div>
+                    <div class="total-item">
+                        <span class="total-label">Total Filtrado:</span>
+                        <span id="totalFiltrado" class="total-value">$0.00</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <!-- Estado vacío -->
+                <div id="emptyTableState" class="empty-table-state">
+                    <div class="empty-table-icon">📊</div>
+                    <h3 class="empty-table-title">No hay datos cargados</h3>
+                    <p class="empty-table-message">Procesa un archivo para ver los datos en esta tabla</p>
+                    <div class="empty-table-hint">
+                        <small>Tipo actual: <span id="currentTableType">APK</span></small>
+                    </div>
+                </div>
+                <!-- Tabla de datos -->
+                <table id="resultTable" class="result-table hidden">
+                     <!-- La tabla se llenará dinámicamente con JavaScript  -->
+                </table>
+            </div>
+        </section>
+    </main>
+
+     <!-- Modal de estado  -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-overlay"></div>
+        <div class="modal-content">
+            <p id="modalMessage" class="modal-message"></p>
+            <button id="closeModal" class="btn-close">Cerrar</button>
+        </div>
+    </div>
+
+     <!-- Notificación toast  -->
+    <div id="toast" class="toast hidden">
+        <p class="toast-message">¡Copiado al portapapeles!</p>
+    </div>
+
+     <!-- Pop-up carrusel para verificación de datos -->
+    <div id="verifyCarousel" class="verify-carousel hidden">
+        <div class="carousel-overlay"></div>
+        <div class="carousel-container">
+            <div class="carousel-header">
+                <h3 class="carousel-title">Verificar Datos APK</h3>
+                <button id="closeCarousel" class="btn-close-carousel">✕</button>
+            </div>
+            
+            <div class="carousel-content">
+                <div class="carousel-info">
+                    <span class="carousel-counter">
+                        Registro <span id="currentIndex">1</span> de <span id="totalRecords">0</span>
+                    </span>
+                </div>
+                
+                <div class="data-grid">
+                    <div class="data-row">
+                        <label class="data-label">Fecha:</label>
+                        <span id="dataFecha" class="data-value"></span>
+                    </div>
+                    <div class="data-row">
+                        <label class="data-label">Proveedor:</label>
+                        <span id="dataProveedor" class="data-value"></span>
+                    </div>
+                    <div class="data-row">
+                        <label class="data-label">Factura:</label>
+                        <span id="dataFactura" class="data-value"></span>
+                    </div>
+                    <div class="data-row">
+                        <label class="data-label">Concepto Actual:</label>
+                        <span id="dataConcepto" class="data-value current-concept"></span>
+                    </div>
+                    <div class="data-row">
+                        <label class="data-label">Vuelta:</label>
+                        <span id="dataVuelta" class="data-value"></span>
+                    </div>
+                </div>
+                
+                <div class="concept-selector">
+                    <label for="conceptSelect" class="concept-label">Cambiar concepto:</label>
+                    <select id="conceptSelect" class="concept-select">
+                        <option value="">Seleccionar concepto...</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div class="carousel-controls">
+                <div class="navigation-controls">
+                    <button id="prevRecord" class="btn-nav">← Anterior</button>
+                    <button id="nextRecord" class="btn-nav">Siguiente →</button>
+                </div>
+                
+                <div class="action-controls">
+                    <button id="changeConceptBtn" class="btn-change">Cambiar</button>
+                    <button id="skipRecord" class="btn-skip">Saltar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Panel flotante para selección de tipo de datos -->
+    <div id="dataTypeSelector" class="data-type-selector">
+        <div class="data-type-container">
+            <div id="radioOptions" class="radio-options">
+                <label class="radio-option">
+                    <input type="radio" name="step" value="apk" class="radio-input" checked>
+                    <span class="radio-label">
+                        <strong>Vueltas</strong>
+                        <small>Procesamiento de APK's</small>
+                    </span>
+                </label>
+                <label class="radio-option">
+                    <input type="radio" name="step" value="gg" class="radio-input">
+                    <span class="radio-label">
+                        <strong>GG's</strong>
+                        <small>Procesamiento de GG</small>
+                    </span>
+                </label>
+            </div>
+            <div class="data-type-actions">
+                <button id="confirmProrrateoBtn" class="btn-confirm-prorrateo" type="button" disabled>
+                    ✓ Confirmar Prorrateo
+                </button>
+            </div>
+        </div>
+    </div>
+
+     <!-- Script principal  -->
+    <script src="script.js"></script>
+</body>
+</html>

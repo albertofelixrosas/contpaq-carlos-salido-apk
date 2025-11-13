@@ -2926,20 +2926,23 @@ function changeIndividualRecordConcept() {
     // Actualizar el registro
     data[recordIndex].concepto = selectedConcept
 
-    // Guardar en localStorage
-    saveCurrentData(data, currentIndividualDataType)
-
-    // Actualizar la tabla visible
-    updateTableAfterIndividualChange()
-
-    // Actualizar filtros si están activos
+    // Actualizar filtros ANTES de guardar y regenerar tabla
     if (originalTableData.length > 0) {
       // Actualizar datos originales de filtros
       const originalIndex = originalTableData.findIndex(record => record.id === currentIndividualRecord.id)
       if (originalIndex !== -1) {
         originalTableData[originalIndex].concepto = selectedConcept
       }
-      // Reaplicar filtros
+    }
+
+    // Guardar en localStorage
+    saveCurrentData(data, currentIndividualDataType)
+
+    // Actualizar la tabla visible
+    updateTableAfterIndividualChange()
+
+    // Reaplicar filtros si están activos
+    if (originalTableData.length > 0) {
       applyTableFilters()
     }
 

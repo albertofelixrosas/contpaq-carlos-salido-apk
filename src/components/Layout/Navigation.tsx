@@ -32,7 +32,10 @@ export const Navigation = ({ currentTab, onChange }: NavigationProps) => {
   };
 
   return (
-    <Paper elevation={1} sx={{ borderRadius: 0 }}>
+    <Paper elevation={1} sx={{ 
+      borderRadius: 0,
+      width: '100%',
+    }}>
       <Tabs
         value={currentTab}
         onChange={handleChange}
@@ -42,6 +45,11 @@ export const Navigation = ({ currentTab, onChange }: NavigationProps) => {
         textColor="primary"
         indicatorColor="primary"
         sx={{
+          px: { xs: 2, sm: 3, md: 4, lg: 6 },
+          width: '100%',
+          maxWidth: '100%',
+          margin: '0 auto',
+          boxSizing: 'border-box',
           '& .MuiTab-root': {
             minWidth: { xs: 100, sm: 120, md: 'auto' },
             fontSize: { xs: '0.75rem', sm: '0.875rem' },

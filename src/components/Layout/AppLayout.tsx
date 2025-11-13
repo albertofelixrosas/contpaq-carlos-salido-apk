@@ -22,14 +22,23 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
   const { dialog, hideConfirm, handleConfirm } = useConfirmDialog();
 
   return (
-    <Box sx={{ minHeight: '100vh', backgroundColor: 'background.default' }}>
+    <Box sx={{ 
+      minHeight: '100vh', 
+      backgroundColor: 'background.default',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+    }}>
       <Header />
       <Navigation currentTab={currentTab} onChange={setCurrentTab} />
       
       <Box sx={{ 
-        px: { xs: 2, sm: 3, md: 4 },
+        px: { xs: 2, sm: 3, md: 4, lg: 6 },
         py: { xs: 2, sm: 3 },
         width: '100%',
+        maxWidth: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box',
       }}>
         {children(currentTab)}
       </Box>

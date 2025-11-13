@@ -7,8 +7,14 @@ import { Assessment } from '@mui/icons-material';
  */
 export const Header = () => {
   return (
-    <AppBar position="static" color="primary" elevation={0}>
-      <Toolbar sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+    <AppBar position="static" color="primary" elevation={0} sx={{ width: '100%' }}>
+      <Toolbar sx={{ 
+        px: { xs: 2, sm: 3, md: 4, lg: 6 },
+        width: '100%',
+        maxWidth: '100%',
+        margin: '0 auto',
+        boxSizing: 'border-box',
+      }}>
         <Assessment sx={{ marginRight: { xs: 1, sm: 2 }, fontSize: { xs: 24, sm: 28 } }} />
         <Typography 
           variant="h6" 

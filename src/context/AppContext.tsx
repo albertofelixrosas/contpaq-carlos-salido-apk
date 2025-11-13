@@ -3,7 +3,7 @@
  * Maneja el estado compartido entre todos los features
  */
 
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { ApkRecord, GgRecord, Concept, Segment } from '../types';
 import {
@@ -38,10 +38,10 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [apkData, setApkDataState] = useState<ApkRecord[]>([]);
-  const [ggData, setGgDataState] = useState<GgRecord[]>([]);
-  const [concepts, setConceptsState] = useState<Concept[]>([]);
-  const [segments, setSegmentsState] = useState<Segment[]>([]);
+  const [apkData, setApkDataState] = useState<ApkRecord[]>(() => getApkData());
+  const [ggData, setGgDataState] = useState<GgRecord[]>(() => getGgData());
+  const [concepts, setConceptsState] = useState<Concept[]>(() => getConcepts());
+  const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());
 
   const setApkData = (data: ApkRecord[]) => {
     setApkDataState(data);
@@ -66,20 +66,20 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     saveSegments(newSegments);
   };
 
-  const loadData = () => {
+  const loadData = useCallback(() => {
     setApkDataState(getApkData());
     setGgDataState(getGgData());
     setConceptsState(getConcepts());
     setSegmentsState(getSegments());
-  };
+  }, []);
 
-  const clearData = () => {
+  const clearData = useCallback(() => {
     setApkDataState([]);
     setGgDataState([]);
     setConceptsState([]);
     setSegmentsState([]);
     localStorage.clear();
-  };
+  }, []);
 
   return (
     <AppContext.Provider

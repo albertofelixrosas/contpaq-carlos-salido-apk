@@ -11,17 +11,12 @@ import { SegmentEditor } from './features/segment-editor/SegmentEditor';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
 import { normalizeApkData, normalizeGgData, validateApkData, validateGgData } from './features/file-upload/fileParser';
 import { useNotification } from './hooks/useNotification';
-import { useEffect } from 'react';
 import type { DataType } from './types';
 
 function AppContent() {
-  const { setApkData, setGgData, loadData, apkData, ggData, concepts, setConcepts, segments, setSegments } = useAppContext();
+  const { setApkData, setGgData, apkData, ggData, concepts, setConcepts, segments, setSegments } = useAppContext();
   const { showSuccess, showError } = useNotification();
   const uniqueConceptsFromData = useUniqueConceptsFromData(apkData, ggData);
-
-  useEffect(() => {
-    loadData();
-  }, []);
 
   const handleFileProcessed = (rawData: unknown, type: DataType) => {
     try {

@@ -332,7 +332,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
           gap: { xs: 2, sm: 3 },
         }}>
           {renderFileCard('Archivo APK', 'apk', apkState)}
-          {renderFileCard('Archivo GG (Opcional)', 'gg', ggState)}
+          {renderFileCard('Archivo GG', 'gg', ggState)}
         </Box>
 
         {(apkState.status === 'success' || ggState.status === 'success') && (

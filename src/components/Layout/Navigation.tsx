@@ -1,0 +1,55 @@
+import { Tabs, Tab, Paper } from '@mui/material';
+import {
+  Upload,
+  TableChart,
+  Label,
+  SegmentOutlined,
+  Calculate,
+} from '@mui/icons-material';
+
+export type TabValue = 'upload' | 'table' | 'concepts' | 'segments' | 'prorrateo';
+
+interface NavigationProps {
+  currentTab: TabValue;
+  onChange: (tab: TabValue) => void;
+}
+
+const tabs = [
+  { value: 'upload' as TabValue, label: 'Carga de Archivos', icon: <Upload /> },
+  { value: 'table' as TabValue, label: 'Tabla de Datos', icon: <TableChart /> },
+  { value: 'concepts' as TabValue, label: 'Conceptos', icon: <Label /> },
+  { value: 'segments' as TabValue, label: 'Segmentos', icon: <SegmentOutlined /> },
+  { value: 'prorrateo' as TabValue, label: 'Prorrateo', icon: <Calculate /> },
+];
+
+/**
+ * Navegación por pestañas
+ * Permite cambiar entre las diferentes secciones de la aplicación
+ */
+export const Navigation = ({ currentTab, onChange }: NavigationProps) => {
+  const handleChange = (_event: React.SyntheticEvent, newValue: TabValue) => {
+    onChange(newValue);
+  };
+
+  return (
+    <Paper elevation={1} sx={{ borderRadius: 0 }}>
+      <Tabs
+        value={currentTab}
+        onChange={handleChange}
+        variant="fullWidth"
+        textColor="primary"
+        indicatorColor="primary"
+      >
+        {tabs.map((tab) => (
+          <Tab
+            key={tab.value}
+            value={tab.value}
+            label={tab.label}
+            icon={tab.icon}
+            iconPosition="start"
+          />
+        ))}
+      </Tabs>
+    </Paper>
+  );
+};

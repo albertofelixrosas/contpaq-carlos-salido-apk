@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   CardContent,
-  Grid,
   Chip,
   Alert,
   LinearProgress,
@@ -323,14 +322,10 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
           <strong>GG:</strong> Archivo de gastos generales para prorrateo
         </Alert>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
-            {renderFileCard('Archivo APK', 'apk', apkState)}
-          </Grid>
-          <Grid item xs={12} md={6}>
-            {renderFileCard('Archivo GG (Opcional)', 'gg', ggState)}
-          </Grid>
-        </Grid>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+          {renderFileCard('Archivo APK', 'apk', apkState)}
+          {renderFileCard('Archivo GG (Opcional)', 'gg', ggState)}
+        </Box>
 
         {(apkState.status === 'success' || ggState.status === 'success') && (
           <Alert severity="success" sx={{ mt: 3 }}>

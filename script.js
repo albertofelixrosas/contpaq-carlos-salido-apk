@@ -3200,10 +3200,11 @@ function showEmptyTableState() {
   // Mostrar estado vacío
   emptyTableState.classList.remove("hidden")
 
-  // Ocultar tabla, acciones y filtros
+  // Ocultar tabla, acciones, filtros y totales
   resultTable.classList.add("hidden")
   tableActions.classList.add("hidden")
   tableFilters.classList.add("hidden")
+  tableTotals.classList.add("hidden")
 
   // Limpiar datos de filtros
   originalTableData = []

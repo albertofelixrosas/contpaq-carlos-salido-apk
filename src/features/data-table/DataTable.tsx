@@ -303,16 +303,16 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   }
 
   return (
-    <Box>
+    <Box sx={{ width: '100%' }}>
       {/* Toolbar */}
-      <Paper sx={{ padding: 2, mb: 2 }}>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+      <Paper sx={{ padding: { xs: 1.5, sm: 2 }, mb: 2 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <TextField
             size="small"
-            placeholder="Buscar en todos los campos..."
+            placeholder="Buscar..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
-            sx={{ flexGrow: 1, minWidth: 250 }}
+            sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 250 } }}
           />
           
           <Chip 
@@ -345,7 +345,10 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       </Paper>
 
       {/* Tabla */}
-      <TableContainer component={Paper} sx={{ maxHeight: 600 }}>
+      <TableContainer component={Paper} sx={{ 
+        maxHeight: { xs: 400, sm: 500, md: 600 },
+        overflowX: 'auto',
+      }}>
         <Table stickyHeader size="small">
           <TableHead>
             {table.getHeaderGroups().map((headerGroup) => (

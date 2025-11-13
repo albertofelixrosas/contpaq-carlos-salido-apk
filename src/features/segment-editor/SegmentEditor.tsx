@@ -105,9 +105,9 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
   const hasChanges = JSON.stringify(localSegments) !== JSON.stringify(segments);
 
   return (
-    <Box>
-      <Paper sx={{ padding: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
+    <Box sx={{ width: '100%' }}>
+      <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           📊 Editor de Segmentos
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
@@ -188,7 +188,7 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
             No hay segmentos definidos. Agrega segmentos para poder calcular el prorrateo de gastos.
           </Alert>
         ) : (
-          <TableContainer component={Paper} variant="outlined">
+          <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
             <Table>
               <TableHead>
                 <TableRow>

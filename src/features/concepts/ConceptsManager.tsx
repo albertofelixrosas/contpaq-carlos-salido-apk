@@ -79,9 +79,9 @@ export const ConceptsManager = ({
   ];
 
   return (
-    <Box>
-      <Paper sx={{ padding: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
+    <Box sx={{ width: '100%' }}>
+      <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           🏷️ Gestión de Conceptos
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
@@ -89,7 +89,7 @@ export const ConceptsManager = ({
         </Typography>
 
         {/* Estadísticas */}
-        <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
           <Chip
             label={`${concepts.length} conceptos guardados`}
             color="primary"
@@ -132,7 +132,7 @@ export const ConceptsManager = ({
 
         {/* Conceptos personalizados */}
         <Box>
-          <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} justifyContent="space-between" alignItems={{ xs: 'stretch', sm: 'center' }} sx={{ mb: 2 }} spacing={{ xs: 1, sm: 0 }}>
             <Typography variant="h6">
               Mis Conceptos ({concepts.length})
             </Typography>

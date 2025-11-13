@@ -8,9 +8,17 @@ import { Assessment } from '@mui/icons-material';
 export const Header = () => {
   return (
     <AppBar position="static" color="primary" elevation={0}>
-      <Toolbar>
-        <Assessment sx={{ marginRight: 2, fontSize: 28 }} />
-        <Typography variant="h6" component="h1" sx={{ fontWeight: 600 }}>
+      <Toolbar sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
+        <Assessment sx={{ marginRight: { xs: 1, sm: 2 }, fontSize: { xs: 24, sm: 28 } }} />
+        <Typography 
+          variant="h6" 
+          component="h1" 
+          sx={{ 
+            fontWeight: 600,
+            fontSize: { xs: '0.9rem', sm: '1rem', md: '1.25rem' },
+            flexGrow: 1,
+          }}
+        >
           Contpaq - Procesador de Datos APK/GG
         </Typography>
         <Box sx={{ flexGrow: 1 }} />

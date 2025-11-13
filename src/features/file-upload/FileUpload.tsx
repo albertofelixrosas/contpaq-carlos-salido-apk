@@ -307,9 +307,9 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
   };
 
   return (
-    <Box>
-      <Paper sx={{ padding: 3, mb: 3 }}>
-        <Typography variant="h5" gutterBottom>
+    <Box sx={{ width: '100%' }}>
+      <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
+        <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
           📂 Carga de Archivos
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
@@ -322,7 +322,11 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
           <strong>GG:</strong> Archivo de gastos generales para prorrateo
         </Alert>
 
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 3 }}>
+        <Box sx={{ 
+          display: 'grid', 
+          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
+          gap: { xs: 2, sm: 3 },
+        }}>
           {renderFileCard('Archivo APK', 'apk', apkState)}
           {renderFileCard('Archivo GG (Opcional)', 'gg', ggState)}
         </Box>

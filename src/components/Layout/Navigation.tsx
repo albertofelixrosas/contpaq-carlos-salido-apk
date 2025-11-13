@@ -15,11 +15,11 @@ interface NavigationProps {
 }
 
 const tabs = [
-  { value: 'upload' as TabValue, label: 'Carga de Archivos', icon: <Upload /> },
-  { value: 'table' as TabValue, label: 'Tabla de Datos', icon: <TableChart /> },
-  { value: 'concepts' as TabValue, label: 'Conceptos', icon: <Label /> },
-  { value: 'segments' as TabValue, label: 'Segmentos', icon: <SegmentOutlined /> },
-  { value: 'prorrateo' as TabValue, label: 'Prorrateo', icon: <Calculate /> },
+  { value: 'upload' as TabValue, label: 'Carga', icon: <Upload fontSize="small" /> },
+  { value: 'table' as TabValue, label: 'Tabla', icon: <TableChart fontSize="small" /> },
+  { value: 'concepts' as TabValue, label: 'Conceptos', icon: <Label fontSize="small" /> },
+  { value: 'segments' as TabValue, label: 'Segmentos', icon: <SegmentOutlined fontSize="small" /> },
+  { value: 'prorrateo' as TabValue, label: 'Prorrateo', icon: <Calculate fontSize="small" /> },
 ];
 
 /**
@@ -36,9 +36,18 @@ export const Navigation = ({ currentTab, onChange }: NavigationProps) => {
       <Tabs
         value={currentTab}
         onChange={handleChange}
-        variant="fullWidth"
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
         textColor="primary"
         indicatorColor="primary"
+        sx={{
+          '& .MuiTab-root': {
+            minWidth: { xs: 100, sm: 120, md: 'auto' },
+            fontSize: { xs: '0.75rem', sm: '0.875rem' },
+            px: { xs: 1, sm: 2 },
+          },
+        }}
       >
         {tabs.map((tab) => (
           <Tab

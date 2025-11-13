@@ -1,5 +1,6 @@
-import { useState, ReactNode } from 'react';
-import { Box, Container } from '@mui/material';
+import { useState } from 'react';
+import type { ReactNode } from 'react';
+import { Box } from '@mui/material';
 import { Header } from './Header';
 import { Navigation, TabValue } from './Navigation';
 import { Notification } from '../Feedback/Notification';
@@ -25,9 +26,13 @@ export const AppLayout = ({ children }: AppLayoutProps) => {
       <Header />
       <Navigation currentTab={currentTab} onChange={setCurrentTab} />
       
-      <Container maxWidth="xl" sx={{ paddingY: 3 }}>
+      <Box sx={{ 
+        px: { xs: 2, sm: 3, md: 4 },
+        py: { xs: 2, sm: 3 },
+        width: '100%',
+      }}>
         {children(currentTab)}
-      </Container>
+      </Box>
 
       {/* Sistemas globales de feedback */}
       <Notification notification={notification} onClose={hideNotification} />

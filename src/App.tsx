@@ -4,7 +4,7 @@ import { theme } from './theme/theme';
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
 import { AppLayout } from './components/Layout/AppLayout';
 import { AppProvider, useAppContext } from './context/AppContext';
-import { FileUpload } from './features/file-upload/FileUpload';
+import { FileUpload } from './features/file-upload';
 import { DataTable } from './features/data-table/DataTable';
 import { ConceptsManager } from './features/concepts/ConceptsManager';
 import { SegmentEditor } from './features/segment-editor/SegmentEditor';
@@ -165,11 +165,19 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <ErrorBoundary>
-        <AppProvider>
-          <AppContent />
-        </AppProvider>
-      </ErrorBoundary>
+      <Box sx={{ 
+        width: '100%',
+        minHeight: '100vh',
+        margin: 0,
+        padding: 0,
+        boxSizing: 'border-box',
+      }}>
+        <ErrorBoundary>
+          <AppProvider>
+            <AppContent />
+          </AppProvider>
+        </ErrorBoundary>
+      </Box>
     </ThemeProvider>
   );
 }

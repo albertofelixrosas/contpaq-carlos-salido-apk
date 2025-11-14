@@ -169,61 +169,16 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
 };
 
 // ========================================
-// PROCESAMIENTO DE DATOS GG (copiado exactamente del vanilla original)
+// PROCESAMIENTO DE DATOS GG
 // ========================================
 
 /**
- * Cambia el concepto según el tipo de proceso (del código vanilla original)
- */
-function changeGGConceptByProcessType(
-  rowObject: ReturnType<typeof createObjectFromRow>,
-  subAccountCode: number,
-  defaultConcept: string
-): string {
-  let finalConcept = defaultConcept;
-
-  // Conceptos predefinidos
-  const preLoadConceptMap: Record<string, string> = {
-    "OBRA CIVIL": "OBRA CIVIL",
-    "DIESEL": "DIESEL",
-    "EQ. TRANSPORTE": "EQ. TRANSPORTE",
-    "VARIOS": "VARIOS",
-    "GASOLINA": "GASOLINA",
-    "ADMON SUELDOS": "ADMON SUELDOS",
-    "DEPRECIACIONES": "DEPRECIACIONES",
-    "SUELDOS Y SALARIOS": "SUELDOS Y SALARIOS"
-  };
-
-  if (['GRANJ', 'ADMIN'].some(word => rowObject.concepto.startsWith(word))) {
-    if (rowObject.concepto.startsWith('GRANJ')) {
-      finalConcept = preLoadConceptMap["SUELDOS Y SALARIOS"];
-    } else if (rowObject.concepto.startsWith('ADMIN')) {
-      finalConcept = preLoadConceptMap["ADMON SUELDOS"];
-    }
-  } else if ([20, 34, 37, 39].includes(subAccountCode)) {
-    finalConcept = preLoadConceptMap["VARIOS"];
-  } else if ([30].includes(subAccountCode)) {
-    finalConcept = preLoadConceptMap["DEPRECIACIONES"];
-  } else if ([25].includes(subAccountCode)) {
-    finalConcept = preLoadConceptMap["EQ. TRANSPORTE"];
-  } else if ([18].includes(subAccountCode)) {
-    finalConcept = preLoadConceptMap["DIESEL"];
-  } else if ([17].includes(subAccountCode)) {
-    finalConcept = preLoadConceptMap["GASOLINA"];
-  }
-
-  return finalConcept;
-}
-
-/**
  * Procesa los datos raw de Excel y los convierte en datos GG estructurados
- * LÓGICA EXACTA DEL CÓDIGO VANILLA ORIGINAL - NO MODIFICAR
  */
 export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
   // Variables para mantener el estado actual de los valores del segmento y cuenta contable
   let currentAccountName = "";
   let currentSegmentName = "";
-  let currentAccountCode = "";
 
   const ggData: GgRecord[] = [];
   let recordId = 1; // ID auto-incremental comenzando en 1
@@ -276,11 +231,8 @@ export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
 
       const { monthString, year } = parseDateString(rowObject.fecha);
 
-      // Extraer la subcuenta del código contable
-      // Ejemplo: 133-037-000-000-00 -> subcuenta 037 para finalmente 37
-      // La subcuenta es la segunda parte del código separado por guiones
-      const subAccountCode = parseInt(currentAccountCode.split('-').slice(1, 2).join('') || '0');
-      const finalConcept = changeGGConceptByProcessType(rowObject, subAccountCode, currentAccountName);
+      // Usar el concepto mapeado (ya aplicado al detectar la cuenta contable)
+      const finalConcept = currentAccountName;
 
       const newRowObject: GgRecord = {
         id: recordId++, // ID auto-incremental único

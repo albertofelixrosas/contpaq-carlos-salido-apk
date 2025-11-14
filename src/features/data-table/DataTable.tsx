@@ -26,6 +26,10 @@ import {
   Typography,
   Button,
   Stack,
+  Select,
+  MenuItem,
+  FormControl,
+  InputLabel,
 } from '@mui/material';
 import {
   ArrowUpward,
@@ -34,6 +38,7 @@ import {
   Delete,
   ContentCopy,
   Download,
+  FilterList,
 } from '@mui/icons-material';
 import { useState } from 'react';
 import type { ApkRecord, GgRecord, DataType } from '../../types';
@@ -58,6 +63,57 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     pageIndex: 0,
     pageSize: 10,
   });
+
+  // Estados para filtros personalizados
+  const [proveedorFilter, setProveedorFilter] = useState('');
+  const [conceptoFilter, setConceptoFilter] = useState('');
+  const [vueltaFilter, setVueltaFilter] = useState('');
+
+  // Extraer valores únicos para los selects
+  const uniqueConceptos = useMemo(() => {
+    const conceptos = new Set(data.map(record => record.concepto).filter(Boolean));
+    return Array.from(conceptos).sort();
+  }, [data]);
+
+  const uniqueVueltas = useMemo(() => {
+    if (type === 'apk') {
+      const vueltas = new Set((data as ApkRecord[]).map(record => record.vuelta).filter(Boolean));
+      return Array.from(vueltas).sort();
+    } else {
+      const segmentos = new Set((data as GgRecord[]).map(record => record.segmento).filter(Boolean));
+      return Array.from(segmentos).sort();
+    }
+  }, [data, type]);
+
+  // Aplicar filtros personalizados
+  const applyCustomFilters = (filters: ColumnFiltersState) => {
+    const newFilters = [...filters];
+    
+    if (proveedorFilter) {
+      newFilters.push({ id: 'proveedor', value: proveedorFilter });
+    }
+    if (conceptoFilter) {
+      newFilters.push({ id: 'concepto', value: conceptoFilter });
+    }
+    if (vueltaFilter) {
+      const field = type === 'apk' ? 'vuelta' : 'segmento';
+      newFilters.push({ id: field, value: vueltaFilter });
+    }
+    
+    setColumnFilters(newFilters);
+  };
+
+  // Actualizar filtros cuando cambien los valores
+  useMemo(() => {
+    applyCustomFilters([]);
+  }, [proveedorFilter, conceptoFilter, vueltaFilter]);
+
+  const clearFilters = () => {
+    setProveedorFilter('');
+    setConceptoFilter('');
+    setVueltaFilter('');
+    setColumnFilters([]);
+  };
 
   // Definir columnas según el tipo de datos
   const columns = useMemo<ColumnDef<ApkRecord | GgRecord>[]>(() => {
@@ -268,6 +324,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
+    enableColumnFilters: true,
   });
 
   const handleCopyToClipboard = () => {
@@ -304,12 +361,126 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
 
   return (
     <Box sx={{ width: '100%' }}>
+      {/* Totales - Ahora arriba */}
+      <Paper sx={{ padding: 2, mb: 2, backgroundColor: 'primary.50' }}>
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={3} justifyContent="space-around">
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Total Absoluto
+            </Typography>
+            <Typography variant="h6" color="primary.main" fontWeight="bold">
+              {new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+              }).format(
+                data.reduce((sum, record) => sum + (record.importe || 0), 0)
+              )}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ({data.length} registros)
+            </Typography>
+          </Box>
+
+          <Box sx={{ textAlign: 'center' }}>
+            <Typography variant="caption" color="text.secondary" display="block">
+              Total Filtrado
+            </Typography>
+            <Typography variant="h6" color="success.main" fontWeight="bold">
+              {new Intl.NumberFormat('es-MX', {
+                style: 'currency',
+                currency: 'MXN',
+              }).format(
+                table.getFilteredRowModel().rows.reduce((sum, row) => {
+                  const record = row.original as ApkRecord | GgRecord;
+                  return sum + (record.importe || 0);
+                }, 0)
+              )}
+            </Typography>
+            <Typography variant="caption" color="text.secondary">
+              ({table.getFilteredRowModel().rows.length} registros)
+            </Typography>
+          </Box>
+        </Stack>
+      </Paper>
+
+      {/* Filtros Personalizados */}
+      <Paper sx={{ padding: 2, mb: 2 }}>
+        <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+          <FilterList color="primary" />
+          <Typography variant="subtitle1" fontWeight="bold">
+            Filtros
+          </Typography>
+        </Stack>
+        
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+          {/* Filtro de Proveedor */}
+          <TextField
+            label="Proveedor"
+            size="small"
+            value={proveedorFilter}
+            onChange={(e) => setProveedorFilter(e.target.value)}
+            placeholder="Buscar por proveedor..."
+            sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}
+          />
+
+          {/* Filtro de Concepto */}
+          <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}>
+            <InputLabel>Concepto</InputLabel>
+            <Select
+              value={conceptoFilter}
+              onChange={(e) => setConceptoFilter(e.target.value)}
+              label="Concepto"
+            >
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {uniqueConceptos.map((concepto) => (
+                <MenuItem key={concepto} value={concepto}>
+                  {concepto}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Filtro de Vuelta/Segmento */}
+          <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}>
+            <InputLabel>{type === 'apk' ? 'Vuelta' : 'Segmento'}</InputLabel>
+            <Select
+              value={vueltaFilter}
+              onChange={(e) => setVueltaFilter(e.target.value)}
+              label={type === 'apk' ? 'Vuelta' : 'Segmento'}
+            >
+              <MenuItem value="">
+                <em>Todos</em>
+              </MenuItem>
+              {uniqueVueltas.map((vuelta) => (
+                <MenuItem key={vuelta} value={vuelta}>
+                  {vuelta}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Botón Limpiar Filtros */}
+          {(proveedorFilter || conceptoFilter || vueltaFilter) && (
+            <Button
+              variant="outlined"
+              size="small"
+              onClick={clearFilters}
+              sx={{ minWidth: 'auto', whiteSpace: 'nowrap' }}
+            >
+              Limpiar
+            </Button>
+          )}
+        </Stack>
+      </Paper>
+
       {/* Toolbar */}
       <Paper sx={{ padding: { xs: 1.5, sm: 2 }, mb: 2 }}>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'stretch', sm: 'center' }}>
           <TextField
             size="small"
-            placeholder="Buscar..."
+            placeholder="Buscar en todas las columnas..."
             value={globalFilter}
             onChange={(e) => setGlobalFilter(e.target.value)}
             sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 250 } }}
@@ -351,6 +522,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       }}>
         <Table stickyHeader size="small">
           <TableHead>
+            {/* Fila de encabezados con ordenamiento */}
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
@@ -361,6 +533,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
                       cursor: header.column.getCanSort() ? 'pointer' : 'default',
                       userSelect: 'none',
                       fontWeight: 600,
+                      backgroundColor: 'background.paper',
                     }}
                     onClick={header.column.getToggleSortingHandler()}
                   >

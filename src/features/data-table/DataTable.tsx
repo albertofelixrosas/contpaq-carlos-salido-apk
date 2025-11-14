@@ -130,7 +130,12 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     if (type === 'apk') {
       const vueltas = new Set((filteredDataByPeriod as ApkRecord[]).map(record => record.vuelta).filter(Boolean));
       return Array.from(vueltas).sort();
+    } else if (type === 'epk') {
+      // EPK vueltas también usan el campo 'vuelta'
+      const segmentos = new Set((filteredDataByPeriod as ApkRecord[]).map(record => record.vuelta).filter(Boolean));
+      return Array.from(segmentos).sort();
     } else {
+      // Solo GG usa el campo 'segmento'
       const segmentos = new Set((filteredDataByPeriod as GgRecord[]).map(record => record.segmento).filter(Boolean));
       return Array.from(segmentos).sort();
     }
@@ -147,7 +152,8 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       newFilters.push({ id: 'concepto', value: conceptoFilter });
     }
     if (vueltaFilter) {
-      const field = type === 'apk' ? 'vuelta' : 'segmento';
+      // APK y EPK usan 'vuelta', solo GG usa 'segmento'
+      const field = type === 'gg' ? 'segmento' : 'vuelta';
       newFilters.push({ id: field, value: vueltaFilter });
     }
     
@@ -375,6 +381,72 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
           size: 80,
         },
       ];
+    } else if (type === 'epk') {
+      // Columnas para EPK (usa 'vuelta' pero lo muestra como 'Segmento')
+      return [
+        {
+          accessorKey: 'id',
+          header: 'ID',
+          size: 70,
+        },
+        {
+          accessorKey: 'fecha',
+          header: 'Fecha',
+          size: 100,
+        },
+        {
+          accessorKey: 'egresos',
+          header: 'Egresos',
+          size: 100,
+        },
+        {
+          accessorKey: 'folio',
+          header: 'Folio',
+          size: 80,
+        },
+        {
+          accessorKey: 'proveedor',
+          header: 'Proveedor',
+          size: 200,
+        },
+        {
+          accessorKey: 'factura',
+          header: 'Factura',
+          size: 120,
+        },
+        {
+          accessorKey: 'importe',
+          header: 'Importe',
+          size: 120,
+          cell: (info) => {
+            const value = info.getValue() as number;
+            return new Intl.NumberFormat('es-MX', {
+              style: 'currency',
+              currency: 'MXN',
+            }).format(value);
+          },
+        },
+        {
+          accessorKey: 'concepto',
+          header: 'Concepto',
+          size: 200,
+        },
+        {
+          accessorKey: 'vuelta',
+          header: 'Segmento',
+          size: 120,
+        },
+        {
+          accessorKey: 'mes',
+          header: 'Mes',
+          size: 80,
+        },
+        {
+          accessorKey: 'año',
+          header: 'Año',
+          size: 80,
+        },
+      ];
     } else {
       // Columnas para GG
       return [
@@ -469,7 +541,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       const record = row.original as ApkRecord | GgRecord;
       
       // Crear array con todos los campos excepto id
-      if (type === 'apk') {
+      if (type === 'apk' || type === 'epk') {
         const apkRecord = record as ApkRecord;
         return [
           apkRecord.fecha,
@@ -690,11 +762,11 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
 
           {/* Filtro de Vuelta/Segmento */}
           <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}>
-            <InputLabel>{type === 'apk' ? 'Vuelta' : 'Segmento'}</InputLabel>
+            <InputLabel>{type === 'gg' ? 'Segmento' : type === 'apk' ? 'Vuelta' : 'Segmento'}</InputLabel>
             <Select
               value={vueltaFilter}
               onChange={(e) => setVueltaFilter(e.target.value)}
-              label={type === 'apk' ? 'Vuelta' : 'Segmento'}
+              label={type === 'gg' ? 'Segmento' : type === 'apk' ? 'Vuelta' : 'Segmento'}
             >
               <MenuItem value="">
                 <em>Todos</em>
@@ -917,10 +989,10 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
                   </Box>
                   <Box>
                     <Typography variant="caption" color="text.secondary">
-                      {type === 'apk' ? 'Vuelta' : 'Segmento'}
+                      {type === 'gg' ? 'Segmento' : type === 'apk' ? 'Vuelta' : 'Segmento'}
                     </Typography>
                     <Typography variant="body1">
-                      {type === 'apk' ? (selectedRecord as ApkRecord).vuelta : (selectedRecord as GgRecord).segmento}
+                      {type === 'gg' ? (selectedRecord as GgRecord).segmento : (selectedRecord as ApkRecord).vuelta}
                     </Typography>
                   </Box>
                   <Box>

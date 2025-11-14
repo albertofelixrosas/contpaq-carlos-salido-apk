@@ -78,7 +78,7 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
 
     const updated = [...localSegments];
     updated[isEditing] = {
-      segment: editingSegment.segment.trim().toUpperCase(),
+      segment: localSegments[isEditing].segment, // Mantener el nombre original
       count: editingSegment.count,
     };
 
@@ -212,21 +212,7 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
                   return (
                     <TableRow key={index} hover={!isEditingRow}>
                       <TableCell>
-                        {isEditingRow ? (
-                          <TextField
-                            value={editingSegment.segment}
-                            onChange={(e) =>
-                              setEditingSegment({
-                                ...editingSegment,
-                                segment: e.target.value,
-                              })
-                            }
-                            size="small"
-                            fullWidth
-                          />
-                        ) : (
-                          <Typography fontWeight={500}>{segment.segment}</Typography>
-                        )}
+                        <Typography fontWeight={500}>{segment.segment}</Typography>
                       </TableCell>
                       <TableCell align="right">
                         {isEditingRow ? (

@@ -1,5 +1,6 @@
-import { Snackbar, Alert, AlertColor } from '@mui/material';
-import { NotificationState } from '../../hooks/useNotification';
+import { Snackbar, Alert } from '@mui/material';
+import type { AlertColor } from '@mui/material';
+import type { NotificationState } from '../../hooks/useNotification';
 
 interface NotificationProps {
   notification: NotificationState;

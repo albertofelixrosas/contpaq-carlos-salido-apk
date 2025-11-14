@@ -3,7 +3,7 @@
  * Maneja el estado compartido entre todos los features
  */
 
-import { createContext, useContext, useState, useCallback, useEffect } from 'react';
+import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import type { ApkRecord, GgRecord, Concept, Segment } from '../types';
 import {

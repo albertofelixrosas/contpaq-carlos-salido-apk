@@ -440,7 +440,9 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       ...rows.map(row => row.join('\t'))
     ].join('\n');
 
-    navigator.clipboard.writeText(tsvContent);
+    navigator.clipboard.writeText(tsvContent)
+      .then(() => showSuccess('Datos copiados al portapapeles exitosamente'))
+      .catch(() => showError('Error al copiar los datos al portapapeles'));
   };
 
   if (data.length === 0) {

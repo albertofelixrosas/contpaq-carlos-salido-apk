@@ -18,7 +18,9 @@ import { Calculate, ContentCopy, Download } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../../context/AppContext';
 import { getProcessData, saveProcessData } from '../../services/localStorage';
+import { useNotification } from '../../hooks/useNotification';
 import type { ProrrateoRecord } from '../../types';
+import { Snackbar } from '@mui/material';
 
 /**
  * Componente de Prorrateo de Gastos
@@ -26,6 +28,7 @@ import type { ProrrateoRecord } from '../../types';
  */
 export const ExpenseProration = () => {
   const { ggData, segments } = useAppContext();
+  const { showSuccess, showError, showWarning, notification, hideNotification } = useNotification();
   const [prorrateoData, setProrrateoData] = useState<ProrrateoRecord[]>([]);
   const [showResults, setShowResults] = useState(false);
 
@@ -78,12 +81,12 @@ export const ExpenseProration = () => {
   const handleGenerateProration = () => {
     try {
       if (ggData.length === 0 || segments.length === 0) {
-        alert('No hay datos suficientes para generar el prorrateo. Asegúrate de tener datos GG y segmentos configurados.');
+        showError('No hay datos suficientes para generar el prorrateo. Asegúrate de tener datos GG y segmentos configurados.');
         return;
       }
 
       if (totalCerdos === 0) {
-        alert('El total de cerdos no puede ser 0. Verifica la configuración de segmentos.');
+        showError('El total de cerdos no puede ser 0. Verifica la configuración de segmentos.');
         return;
       }
 
@@ -131,14 +134,14 @@ export const ExpenseProration = () => {
       console.log(`✅ Prorrateo generado: ${prorrateoRecords.length} registros creados`);
     } catch (error) {
       console.error('❌ Error generando prorrateo:', error);
-      alert('Error al generar el prorrateo. Verifica que todos los datos sean válidos.');
+      showError('Error al generar el prorrateo. Verifica que todos los datos sean válidos.');
     }
   };
 
   // Copiar al portapapeles
   const handleCopyToClipboard = () => {
     if (prorrateoData.length === 0) {
-      alert('No hay datos de prorrateo para copiar. Genera primero los datos.');
+      showWarning('No hay datos de prorrateo para copiar. Genera primero los datos.');
       return;
     }
 
@@ -166,18 +169,21 @@ export const ExpenseProration = () => {
       });
 
       navigator.clipboard.writeText(tableText).then(() => {
-        alert('¡Datos de prorrateo copiados al portapapeles!');
+        showSuccess('¡Datos de prorrateo copiados al portapapeles!');
+      }).catch((error) => {
+        console.error('Error al copiar:', error);
+        showError('Error al copiar los datos al portapapeles.');
       });
     } catch (error) {
       console.error('Error al copiar:', error);
-      alert('Error al copiar los datos al portapapeles.');
+      showError('Error al copiar los datos al portapapeles.');
     }
   };
 
   // Descargar como Excel
   const handleDownloadExcel = () => {
     if (prorrateoData.length === 0) {
-      alert('No hay datos de prorrateo para descargar. Genera primero los datos.');
+      showWarning('No hay datos de prorrateo para descargar. Genera el prorrateo primero.');
       return;
     }
 
@@ -198,7 +204,7 @@ export const ExpenseProration = () => {
       console.log('✅ Archivo de prorrateo descargado');
     } catch (error) {
       console.error('Error descargando archivo:', error);
-      alert('Error al generar el archivo de descarga.');
+      showError('Error al generar el archivo de descarga.');
     }
   };
 
@@ -356,6 +362,18 @@ export const ExpenseProration = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Notificaciones */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={hideNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert onClose={hideNotification} severity={notification.type} variant="filled">
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

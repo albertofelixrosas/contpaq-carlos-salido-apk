@@ -15,13 +15,16 @@ import {
   Alert,
   Stack,
   Chip,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Add, Delete, Edit, Save, Cancel } from '@mui/icons-material';
-import type { Segment } from '../../types';
+import type { Segment, DataGroup } from '../../types';
 
 interface SegmentEditorProps {
-  segments: Segment[];
-  onSave: (segments: Segment[]) => void;
+  apkSegments: Segment[];
+  epkSegments: Segment[];
+  onSave: (dataGroup: DataGroup, segments: Segment[]) => void;
 }
 
 interface EditingSegment {
@@ -32,9 +35,12 @@ interface EditingSegment {
 /**
  * Editor de segmentos para distribución de gastos
  * Permite definir segmentos y sus conteos para prorrateo
+ * Soporta gestión independiente de segmentos APK y EPK
  */
-export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
-  const [localSegments, setLocalSegments] = useState<Segment[]>(segments);
+export const SegmentEditor = ({ apkSegments, epkSegments, onSave }: SegmentEditorProps) => {
+  const [activeSection, setActiveSection] = useState<DataGroup>('apk');
+  const [localApkSegments, setLocalApkSegments] = useState<Segment[]>(apkSegments);
+  const [localEpkSegments, setLocalEpkSegments] = useState<Segment[]>(epkSegments);
   const [isEditing, setIsEditing] = useState<number | null>(null);
   const [editingSegment, setEditingSegment] = useState<EditingSegment>({
     segment: '',
@@ -47,8 +53,17 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
   const [showAddForm, setShowAddForm] = useState(false);
 
   useEffect(() => {
-    setLocalSegments(segments);
-  }, [segments]);
+    setLocalApkSegments(apkSegments);
+  }, [apkSegments]);
+
+  useEffect(() => {
+    setLocalEpkSegments(epkSegments);
+  }, [epkSegments]);
+
+  // Segmentos actuales según la sección activa
+  const currentSegments = activeSection === 'apk' ? localApkSegments : localEpkSegments;
+  const setCurrentSegments = activeSection === 'apk' ? setLocalApkSegments : setLocalEpkSegments;
+  const originalSegments = activeSection === 'apk' ? apkSegments : epkSegments;
 
   const handleAdd = () => {
     if (newSegment.segment.trim() === '' || newSegment.count <= 0) {
@@ -56,33 +71,33 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
     }
 
     const updated = [
-      ...localSegments,
+      ...currentSegments,
       {
         segment: newSegment.segment.trim().toUpperCase(),
         count: newSegment.count,
       },
     ];
 
-    setLocalSegments(updated);
+    setCurrentSegments(updated);
     setNewSegment({ segment: '', count: 0 });
     setShowAddForm(false);
   };
 
   const handleEdit = (index: number) => {
     setIsEditing(index);
-    setEditingSegment(localSegments[index]);
+    setEditingSegment(currentSegments[index]);
   };
 
   const handleSaveEdit = () => {
     if (isEditing === null) return;
 
-    const updated = [...localSegments];
+    const updated = [...currentSegments];
     updated[isEditing] = {
-      segment: localSegments[isEditing].segment, // Mantener el nombre original
+      segment: currentSegments[isEditing].segment, // Mantener el nombre original
       count: editingSegment.count,
     };
 
-    setLocalSegments(updated);
+    setCurrentSegments(updated);
     setIsEditing(null);
     setEditingSegment({ segment: '', count: 0 });
   };
@@ -93,16 +108,16 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
   };
 
   const handleDelete = (index: number) => {
-    const updated = localSegments.filter((_, i) => i !== index);
-    setLocalSegments(updated);
+    const updated = currentSegments.filter((_, i) => i !== index);
+    setCurrentSegments(updated);
   };
 
   const handleSaveAll = () => {
-    onSave(localSegments);
+    onSave(activeSection, currentSegments);
   };
 
-  const totalCount = localSegments.reduce((sum, seg) => sum + seg.count, 0);
-  const hasChanges = JSON.stringify(localSegments) !== JSON.stringify(segments);
+  const totalCount = currentSegments.reduce((sum, seg) => sum + seg.count, 0);
+  const hasChanges = JSON.stringify(currentSegments) !== JSON.stringify(originalSegments);
 
   return (
     <Box sx={{ width: '100%' }}>
@@ -114,10 +129,24 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
           Define los segmentos y sus conteos para la distribución de gastos. El prorrateo se calculará proporcionalmente según estos valores.
         </Typography>
 
+        {/* Tabs APK/EPK */}
+        <Tabs
+          value={activeSection}
+          onChange={(_, newValue) => {
+            setActiveSection(newValue);
+            setIsEditing(null);
+            setShowAddForm(false);
+          }}
+          sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+        >
+          <Tab label="APK - Segmentos" value="apk" />
+          <Tab label="EPK - Segmentos" value="epk" />
+        </Tabs>
+
         {/* Estadísticas */}
         <Stack direction="row" spacing={2} sx={{ mb: 3 }}>
           <Chip
-            label={`${localSegments.length} segmentos`}
+            label={`${currentSegments.length} segmentos`}
             color="primary"
             variant="outlined"
           />
@@ -183,9 +212,9 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
         )}
 
         {/* Tabla de segmentos */}
-        {localSegments.length === 0 ? (
+        {currentSegments.length === 0 ? (
           <Alert severity="info">
-            No hay segmentos definidos. Agrega segmentos para poder calcular el prorrateo de gastos.
+            No hay segmentos definidos para {activeSection.toUpperCase()}. Agrega segmentos para poder calcular el prorrateo de gastos.
           </Alert>
         ) : (
           <TableContainer component={Paper} variant="outlined" sx={{ overflowX: 'auto' }}>
@@ -205,7 +234,7 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {localSegments.map((segment, index) => {
+                {currentSegments.map((segment, index) => {
                   const percentage = totalCount > 0 ? (segment.count / totalCount) * 100 : 0;
                   const isEditingRow = isEditing === index;
 
@@ -297,11 +326,11 @@ export const SegmentEditor = ({ segments, onSave }: SegmentEditorProps) => {
         )}
 
         {/* Botones de acción */}
-        {localSegments.length > 0 && (
+        {currentSegments.length > 0 && (
           <Stack direction="row" spacing={2} sx={{ mt: 3 }} justifyContent="flex-end">
             <Button
               variant="outlined"
-              onClick={() => setLocalSegments(segments)}
+              onClick={() => setCurrentSegments(originalSegments)}
               disabled={!hasChanges}
             >
               Descartar Cambios

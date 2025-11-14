@@ -27,8 +27,9 @@ function AppContent() {
     epkGgData, 
     concepts, 
     setConcepts, 
-    segments, 
-    setSegments 
+    apkSegments,
+    epkSegments,
+    setSegmentsByGroup
   } = useAppContext();
   const { showSuccess, showError } = useNotification();
   
@@ -248,10 +249,11 @@ function AppContent() {
       case 'segments':
         return (
           <SegmentEditor
-            segments={segments}
-            onSave={(updatedSegments) => {
-              setSegments(updatedSegments);
-              showSuccess('Segmentos guardados correctamente');
+            apkSegments={apkSegments}
+            epkSegments={epkSegments}
+            onSave={(dataGroup, updatedSegments) => {
+              setSegmentsByGroup(dataGroup, updatedSegments);
+              showSuccess(`Segmentos de ${dataGroup.toUpperCase()} guardados correctamente`);
             }}
           />
         );

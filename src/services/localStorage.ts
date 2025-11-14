@@ -189,6 +189,24 @@ export function getSegments(): Segment[] {
 }
 
 /**
+ * Obtiene segmentos de un grupo específico (APK o EPK)
+ */
+export function getSegmentsByGroup(group: DataGroup): Segment[] {
+  const processData = getDataByGroup(group);
+  return processData.segments || [];
+}
+
+/**
+ * Guarda segmentos en un grupo específico (APK o EPK)
+ */
+export function saveSegmentsByGroup(group: DataGroup, segments: Segment[]): void {
+  const processData = getDataByGroup(group);
+  processData.segments = segments;
+  saveDataByGroup(group, processData);
+  console.log(`✅ Segmentos guardados en ${group}:`, segments.length);
+}
+
+/**
  * Guarda datos de prorrateo en localStorage
  */
 export function saveProrrateoData(prorrateoData: ProrrateoRecord[]): void {

@@ -61,6 +61,16 @@ export interface ConceptMapping {
   createdAt: string;
 }
 
+export interface TextConceptMapping {
+  id: string;
+  textPattern: string;       // Patrón de texto (ej: "GRANJAS", "ADMIN")
+  matchType: 'startsWith' | 'contains' | 'exact';  // Tipo de coincidencia
+  targetConcept: string;     // Concepto destino
+  dataType: 'apk' | 'gg' | 'both';  // A qué tipo aplica
+  priority: number;          // Prioridad (menor = más alta)
+  createdAt: string;
+}
+
 export interface ParsedAccountCode {
   full: string;              // Código completo (ej: "133-001-000-000-00")
   mainGroup: string;         // Primer número (ej: "133")

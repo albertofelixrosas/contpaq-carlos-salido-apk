@@ -8,6 +8,7 @@ import { FileUpload } from './features/file-upload';
 import { DataTable } from './features/data-table/DataTable';
 import { ConceptsManager } from './features/concepts/ConceptsManager';
 import { ConceptMappingManager } from './features/concept-mapping/ConceptMappingManager';
+import TextConceptMappingManager from './features/concept-mapping/TextConceptMappingManager';
 import { SegmentEditor } from './features/segment-editor/SegmentEditor';
 import { ExpenseProration } from './features/prorrateo';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
@@ -148,6 +149,9 @@ function AppContent() {
       
       case 'concept-mapping':
         return <ConceptMappingManager />;
+      
+      case 'text-mapping':
+        return <TextConceptMappingManager />;
       
       case 'prorrateo':
         return <ExpenseProration />;

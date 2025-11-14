@@ -1,4 +1,4 @@
-import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping } from '../types';
+import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping } from '../types';
 
 /**
  * Servicio para gestión de localStorage
@@ -8,6 +8,7 @@ const STORAGE_KEYS = {
   APK: 'apk',
   CONCEPTS: 'concepts',
   CONCEPT_MAPPINGS: 'conceptMappings',
+  TEXT_CONCEPT_MAPPINGS: 'textConceptMappings',
 } as const;
 
 // ============================================
@@ -335,5 +336,107 @@ export function applyConceptMapping(
   }
   
   // Si no hay mapeo, devolver el texto original
+  return originalText;
+}
+
+// ============================================
+// MAPEOS POR TEXTO DE CONCEPTO (PRIORIDAD ALTA)
+// ============================================
+
+/**
+ * Obtiene todos los mapeos por texto
+ */
+export function getTextConceptMappings(): TextConceptMapping[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.TEXT_CONCEPT_MAPPINGS);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error al obtener mapeos por texto:', error);
+    return [];
+  }
+}
+
+/**
+ * Guarda los mapeos por texto
+ */
+export function saveTextConceptMappings(mappings: TextConceptMapping[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.TEXT_CONCEPT_MAPPINGS, JSON.stringify(mappings));
+    console.log(`✅ Mapeos por texto guardados: ${mappings.length} registros`);
+  } catch (error) {
+    console.error('Error al guardar mapeos por texto:', error);
+    throw new Error('No se pudieron guardar los mapeos por texto');
+  }
+}
+
+/**
+ * Busca un mapeo por texto de concepto
+ * Este tiene PRIORIDAD sobre el mapeo por código
+ */
+export function findMappingByConceptText(
+  conceptText: string,
+  dataType: 'apk' | 'gg'
+): TextConceptMapping | undefined {
+  const mappings = getTextConceptMappings();
+  
+  // Filtrar por tipo de datos y ordenar por prioridad
+  const applicableMappings = mappings
+    .filter(m => m.dataType === dataType || m.dataType === 'both')
+    .sort((a, b) => a.priority - b.priority);
+  
+  // Buscar la primera coincidencia
+  for (const mapping of applicableMappings) {
+    const textUpper = conceptText.toUpperCase();
+    const patternUpper = mapping.textPattern.toUpperCase();
+    
+    switch (mapping.matchType) {
+      case 'startsWith':
+        if (textUpper.startsWith(patternUpper)) {
+          return mapping;
+        }
+        break;
+      case 'contains':
+        if (textUpper.includes(patternUpper)) {
+          return mapping;
+        }
+        break;
+      case 'exact':
+        if (textUpper === patternUpper) {
+          return mapping;
+        }
+        break;
+    }
+  }
+  
+  return undefined;
+}
+
+/**
+ * Aplica el mapeo completo con prioridad:
+ * 1. Primero intenta mapeo por texto de concepto (PRIORIDAD ALTA)
+ * 2. Si no encuentra, intenta mapeo por código de cuenta
+ * 3. Si no encuentra, devuelve el texto original
+ */
+export function applyFullConceptMapping(
+  accountCode: string,
+  originalText: string,
+  conceptText: string,
+  dataType: 'apk' | 'gg'
+): string {
+  // 1. PRIORIDAD ALTA: Mapeo por texto de concepto de pago
+  const textMapping = findMappingByConceptText(conceptText, dataType);
+  if (textMapping) {
+    console.log(`✅ Mapeo por texto aplicado: "${conceptText}" -> ${textMapping.targetConcept}`);
+    return textMapping.targetConcept;
+  }
+  
+  // 2. PRIORIDAD MEDIA: Mapeo por código de cuenta
+  const codeMapping = findMappingByAccountCode(accountCode, dataType);
+  if (codeMapping) {
+    console.log(`✅ Mapeo por código aplicado: ${accountCode} -> ${codeMapping.targetConcept}`);
+    return codeMapping.targetConcept;
+  }
+  
+  // 3. Sin mapeo: usar texto original
   return originalText;
 }

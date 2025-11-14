@@ -1,6 +1,6 @@
 import type { ApkRecord, GgRecord } from '../../types';
 import { extractAccountCode } from '../../utils/accountCodeParser';
-import { applyConceptMapping } from '../../services/localStorage';
+import { applyFullConceptMapping } from '../../services/localStorage';
 
 // ========================================
 // REGEX (copiados del código vanilla original)
@@ -68,6 +68,8 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
   
   // Variables para mantener el estado actual de los valores del segmento y cuenta contable
   let currentAccountName = "";
+  let currentAccountCode = ""; // Guardar el código de cuenta
+  let currentOriginalAccountName = ""; // Guardar el nombre original
   let currentSegmentName = "";
   const segmentNames = new Set<string>();
   const apkData: ApkRecord[] = [];
@@ -93,18 +95,13 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
       // La segunda celda es el nombre de la cuenta contable original
       const originalAccountName = String(row?.[1] || '').trim();
       
-      // Extraer el código de cuenta (segundo número)
-      const accountCode = extractAccountCode(firstCell);
-      
-      // Aplicar mapeo si existe, si no usar el texto original
-      if (accountCode) {
-        currentAccountName = applyConceptMapping(accountCode, originalAccountName, 'apk');
-      } else {
-        currentAccountName = originalAccountName;
-      }
+      // TEMPORAL: Guardamos el código y el texto original
+      // El mapeo se aplicará cuando tengamos el texto completo del concepto de pago
+      currentAccountCode = firstCell;
+      currentOriginalAccountName = originalAccountName;
       
       if (accountMatches <= 3) {
-        console.log('✅ Cuenta contable encontrada:', firstCell, '->', currentAccountName);
+        console.log('✅ Cuenta contable encontrada:', firstCell, '->', originalAccountName);
       }
     }
     // Segmento:  100 GG
@@ -133,6 +130,20 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
       // FECHA	EGRESOS	FOLIO	PROVEEDOR	FACTURA	 IMPORTE 	CONCEPTO	VUELTA	MES	AÑO
 
       const { monthString, year } = parseDateString(rowObject.fecha);
+      
+      // APLICAR MAPEO CON PRIORIDAD:
+      // 1. Primero intenta mapeo por texto del concepto de pago (proveedor)
+      // 2. Si no encuentra, intenta mapeo por código de cuenta
+      // 3. Si no encuentra, usa el texto original
+      const paymentConcept = rowObject.concepto || ""; // "GRANJAS NOM SEM 39..."
+      const accountCode = extractAccountCode(currentAccountCode);
+      
+      currentAccountName = applyFullConceptMapping(
+        accountCode || "",
+        currentOriginalAccountName,
+        paymentConcept,
+        'apk'
+      );
 
       // En caso de que un valor no exista, se asigna cadena vacía o 0
       // Se crea el nuevo objeto con la estructura deseada
@@ -178,6 +189,8 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
 export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
   // Variables para mantener el estado actual de los valores del segmento y cuenta contable
   let currentAccountName = "";
+  let currentAccountCode = ""; // Guardar el código de cuenta
+  let currentOriginalAccountName = ""; // Guardar el nombre original
   let currentSegmentName = "";
 
   const ggData: GgRecord[] = [];
@@ -197,17 +210,11 @@ export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
     if (firstCell.match(accountNumberRegex)) {
       // La segunda celda es el nombre de la cuenta contable original
       const originalAccountName = String(row?.[1] || '').trim();
+      
+      // TEMPORAL: Guardamos el código y el texto original
+      // El mapeo se aplicará cuando tengamos el texto completo del concepto de pago
       currentAccountCode = firstCell;
-      
-      // Extraer el código de cuenta (segundo número)
-      const accountCode = extractAccountCode(firstCell);
-      
-      // Aplicar mapeo si existe, si no usar el texto original
-      if (accountCode) {
-        currentAccountName = applyConceptMapping(accountCode, originalAccountName, 'gg');
-      } else {
-        currentAccountName = originalAccountName;
-      }
+      currentOriginalAccountName = originalAccountName;
     }
     // Segmento:  100 GG
     // 2️⃣ Si la primera celda empieza con "segmento"
@@ -231,8 +238,19 @@ export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
 
       const { monthString, year } = parseDateString(rowObject.fecha);
 
-      // Usar el concepto mapeado (ya aplicado al detectar la cuenta contable)
-      const finalConcept = currentAccountName;
+      // APLICAR MAPEO CON PRIORIDAD:
+      // 1. Primero intenta mapeo por texto del concepto de pago (proveedor)
+      // 2. Si no encuentra, intenta mapeo por código de cuenta
+      // 3. Si no encuentra, usa el texto original
+      const paymentConcept = rowObject.concepto || ""; // "GRANJAS NOM SEM 39..."
+      const accountCode = extractAccountCode(currentAccountCode);
+      
+      currentAccountName = applyFullConceptMapping(
+        accountCode || "",
+        currentOriginalAccountName,
+        paymentConcept,
+        'gg'
+      );
 
       const newRowObject: GgRecord = {
         id: recordId++, // ID auto-incremental único
@@ -242,7 +260,7 @@ export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
         proveedor: rowObject.concepto || "",
         factura: rowObject.ref || "",
         importe: parseFloat(rowObject.cargos) || 0,
-        concepto: finalConcept,
+        concepto: currentAccountName,
         segmento: currentSegmentName,
         mes: monthString,
         año: year.toString(),

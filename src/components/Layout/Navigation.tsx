@@ -6,9 +6,10 @@ import {
   SegmentOutlined,
   Calculate,
   Link,
+  TextFields,
 } from '@mui/icons-material';
 
-export type TabValue = 'upload' | 'table' | 'concepts' | 'segments' | 'concept-mapping' | 'prorrateo';
+export type TabValue = 'upload' | 'table' | 'concepts' | 'segments' | 'concept-mapping' | 'text-mapping' | 'prorrateo';
 
 interface NavigationProps {
   currentTab: TabValue;
@@ -19,7 +20,8 @@ const tabs = [
   { value: 'upload' as TabValue, label: 'Carga', icon: <Upload fontSize="small" /> },
   { value: 'table' as TabValue, label: 'Tabla', icon: <TableChart fontSize="small" /> },
   { value: 'concepts' as TabValue, label: 'Conceptos', icon: <Label fontSize="small" /> },
-  { value: 'concept-mapping' as TabValue, label: 'Mapeo', icon: <Link fontSize="small" /> },
+  { value: 'concept-mapping' as TabValue, label: 'Mapeo Código', icon: <Link fontSize="small" /> },
+  { value: 'text-mapping' as TabValue, label: 'Mapeo Texto', icon: <TextFields fontSize="small" /> },
   { value: 'segments' as TabValue, label: 'Segmentos', icon: <SegmentOutlined fontSize="small" /> },
   { value: 'prorrateo' as TabValue, label: 'Prorrateo', icon: <Calculate fontSize="small" /> },
 ];

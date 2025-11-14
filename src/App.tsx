@@ -20,9 +20,8 @@ function AppContent() {
   const { 
     setDataByGroup, 
     apkData, 
-    apkGgData, 
+    ggData, 
     epkData, 
-    epkGgData, 
     concepts, 
     setConcepts, 
     segments, 
@@ -32,7 +31,7 @@ function AppContent() {
   
   // Combinar todos los datos para conceptos únicos
   const allData = [...apkData, ...epkData];
-  const allGgData = [...apkGgData, ...epkGgData];
+  const allGgData = ggData;
   const uniqueConceptsFromData = useUniqueConceptsFromData(allData, allGgData);
 
   const handleFileProcessed = (rawData: unknown, detection: FileDetectionResult) => {
@@ -57,8 +56,8 @@ function AppContent() {
         }
         const normalized = normalizeGgData(dataArray, detection.processType);
         console.log('✓ Datos GG normalizados:', normalized.length, 'registros');
-        setDataByGroup(detection.dataGroup, normalized);
-        console.log(`✓ Datos guardados en ${detection.dataGroup}`);
+        setDataByGroup(detection.dataGroup, normalized, true); // true = isGG
+        console.log(`✓ Datos guardados en ${detection.dataGroup} (GG)`);
       } else {
         // Es archivo con vueltas (APK o EPK)
         const validation = validateApkData(dataArray);
@@ -69,8 +68,8 @@ function AppContent() {
         }
         const normalized = normalizeApkData(dataArray, detection.processType);
         console.log('✓ Datos normalizados:', normalized.length, 'registros');
-        setDataByGroup(detection.dataGroup, normalized);
-        console.log(`✓ Datos guardados en ${detection.dataGroup}`);
+        setDataByGroup(detection.dataGroup, normalized, false); // false = no es GG
+        console.log(`✓ Datos guardados en ${detection.dataGroup} (Vueltas)`);
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error al normalizar datos');
@@ -91,12 +90,11 @@ function AppContent() {
       case 'table':
         console.log('📊 Renderizando tabla con datos:', { 
           apk: apkData.length, 
-          apkGg: apkGgData.length,
-          epk: epkData.length,
-          epkGg: epkGgData.length
+          gg: ggData.length,
+          epk: epkData.length
         });
         
-        const totalRecords = apkData.length + apkGgData.length + epkData.length + epkGgData.length;
+        const totalRecords = apkData.length + ggData.length + epkData.length;
         
         return (
           <Box>
@@ -128,21 +126,6 @@ function AppContent() {
                   </Box>
                 )}
                 
-                {apkGgData.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      APK-GG - Aparcería Gastos Generales ({apkGgData.length} registros)
-                    </Typography>
-                    <DataTable
-                      data={apkGgData}
-                      type="gg"
-                      onEdit={(record) => console.log('Edit APK-GG:', record)}
-                      onDelete={(id) => console.log('Delete APK-GG:', id)}
-                      onExport={() => console.log('Export APK-GG')}
-                    />
-                  </Box>
-                )}
-                
                 {epkData.length > 0 && (
                   <Box>
                     <Typography variant="h6" gutterBottom>
@@ -158,17 +141,17 @@ function AppContent() {
                   </Box>
                 )}
                 
-                {epkGgData.length > 0 && (
+                {ggData.length > 0 && (
                   <Box>
                     <Typography variant="h6" gutterBottom>
-                      EPK-GG - Producción/Engorda Gastos Generales ({epkGgData.length} registros)
+                      Gastos Generales (APK + EPK) ({ggData.length} registros)
                     </Typography>
                     <DataTable
-                      data={epkGgData}
+                      data={ggData}
                       type="gg"
-                      onEdit={(record) => console.log('Edit EPK-GG:', record)}
-                      onDelete={(id) => console.log('Delete EPK-GG:', id)}
-                      onExport={() => console.log('Export EPK-GG')}
+                      onEdit={(record) => console.log('Edit GG:', record)}
+                      onDelete={(id) => console.log('Delete GG:', id)}
+                      onExport={() => console.log('Export GG')}
                     />
                   </Box>
                 )}

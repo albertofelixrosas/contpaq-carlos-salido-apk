@@ -117,13 +117,8 @@ export const detectFileType = (rawData: unknown[]): FileDetectionResult => {
   
   confidence += hasVueltas ? 10 : 5;
 
-  // 5. Construir DataGroup
-  let dataGroup: DataGroup;
-  if (processType === 'apk') {
-    dataGroup = isGastoGeneral ? 'apk-gg' : 'apk';
-  } else {
-    dataGroup = isGastoGeneral ? 'epk-gg' : 'epk';
-  }
+  // 5. Construir DataGroup (siempre es el processType, GG se guarda dentro del mismo grupo)
+  const dataGroup: DataGroup = processType;
 
   const result: FileDetectionResult = {
     processType,

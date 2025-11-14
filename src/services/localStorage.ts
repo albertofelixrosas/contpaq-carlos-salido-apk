@@ -5,10 +5,8 @@ import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concep
  */
 
 const STORAGE_KEYS = {
-  APK: 'apk',              // Aparcería - Vueltas
-  APK_GG: 'apk-gg',        // Aparcería - Gastos Generales
-  EPK: 'epk',              // Producción/Engorda - Vueltas
-  EPK_GG: 'epk-gg',        // Producción/Engorda - Gastos Generales
+  APK: 'apk',              // Aparcería (incluye vueltas y GG)
+  EPK: 'epk',              // Producción/Engorda (incluye vueltas y GG)
   CONCEPTS: 'concepts',
   CONCEPT_MAPPINGS: 'conceptMappings',
   TEXT_CONCEPT_MAPPINGS: 'textConceptMappings',
@@ -66,12 +64,8 @@ function getStorageKeyForGroup(group: DataGroup): string {
   switch (group) {
     case 'apk':
       return STORAGE_KEYS.APK;
-    case 'apk-gg':
-      return STORAGE_KEYS.APK_GG;
     case 'epk':
       return STORAGE_KEYS.EPK;
-    case 'epk-gg':
-      return STORAGE_KEYS.EPK_GG;
   }
 }
 
@@ -121,15 +115,11 @@ export function clearDataByGroup(group: DataGroup): void {
  */
 export function getAllGroupsData(): {
   apk: ProcessData;
-  apkGg: ProcessData;
   epk: ProcessData;
-  epkGg: ProcessData;
 } {
   return {
     apk: getDataByGroup('apk'),
-    apkGg: getDataByGroup('apk-gg'),
     epk: getDataByGroup('epk'),
-    epkGg: getDataByGroup('epk-gg'),
   };
 }
 

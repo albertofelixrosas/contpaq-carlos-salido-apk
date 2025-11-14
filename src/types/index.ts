@@ -165,7 +165,7 @@ export interface MassReplacementSelection {
 // GG = Gastos Generales (ambos pueden tener)
 export type ProcessType = 'apk' | 'epk';
 export type DataType = 'apk' | 'epk' | 'gg';
-export type DataGroup = 'apk' | 'apk-gg' | 'epk' | 'epk-gg';
+export type DataGroup = 'apk' | 'epk';
 
 // ============================================
 // DETECCIÓN AUTOMÁTICA DE ARCHIVOS

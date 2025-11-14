@@ -32,10 +32,8 @@ import { Snackbar } from '@mui/material';
  * Distribuye los gastos de GG entre segmentos según su porcentaje
  */
 export const ExpenseProration = () => {
-  const { apkGgData, epkGgData, segments } = useAppContext();
+  const { ggData, segments } = useAppContext();
   
-  // Combinar datos GG de ambos grupos
-  const ggData = [...apkGgData, ...epkGgData];
   const { showSuccess, showError, showWarning, notification, hideNotification } = useNotification();
   const [prorrateoData, setProrrateoData] = useState<ProrrateoRecord[]>([]);
   const [showResults, setShowResults] = useState(false);

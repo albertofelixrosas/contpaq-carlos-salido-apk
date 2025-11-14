@@ -1,7 +1,7 @@
 /**
  * Contexto global de la aplicación
  * Maneja el estado compartido entre todos los features
- * Ahora soporta 4 grupos: APK, APK-GG, EPK, EPK-GG
+ * Soporta 2 grupos: APK y EPK, cada uno con sus datos de vueltas y GG
  */
 
 import { createContext, useContext, useState, useCallback } from 'react';
@@ -19,16 +19,15 @@ import {
 } from '../services/localStorage';
 
 interface AppContextType {
-  // Data - 4 grupos separados
+  // Data - 2 grupos principales
   apkData: ApkRecord[];        // Aparcería - Vueltas
-  apkGgData: GgRecord[];       // Aparcería - Gastos Generales
+  ggData: GgRecord[];          // Gastos Generales (combinados de APK y EPK)
   epkData: ApkRecord[];        // Producción/Engorda - Vueltas
-  epkGgData: GgRecord[];       // Producción/Engorda - Gastos Generales
   concepts: Concept[];
   segments: Segment[];
   
   // Actions
-  setDataByGroup: (group: DataGroup, data: ApkRecord[] | GgRecord[]) => void;
+  setDataByGroup: (group: DataGroup, data: ApkRecord[] | GgRecord[], isGG: boolean) => void;
   setConcepts: (concepts: Concept[]) => void;
   setSegments: (segments: Segment[]) => void;
   
@@ -41,11 +40,15 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  // Inicializar los 4 grupos desde localStorage
+  // Inicializar los 2 grupos desde localStorage
   const [apkData, setApkData] = useState<ApkRecord[]>(() => getDataByGroup('apk').data);
-  const [apkGgData, setApkGgData] = useState<GgRecord[]>(() => getDataByGroup('apk-gg').gg);
   const [epkData, setEpkData] = useState<ApkRecord[]>(() => getDataByGroup('epk').data);
-  const [epkGgData, setEpkGgData] = useState<GgRecord[]>(() => getDataByGroup('epk-gg').gg);
+  const [ggData, setGgData] = useState<GgRecord[]>(() => {
+    // Combinar GG de ambos grupos
+    const apkGg = getDataByGroup('apk').gg;
+    const epkGg = getDataByGroup('epk').gg;
+    return [...apkGg, ...epkGg];
+  });
   
   const [concepts, setConceptsState] = useState<Concept[]>(() => {
     initializePredefinedConcepts();
@@ -53,61 +56,58 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   });
   const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());
 
-  const setDataByGroup = useCallback((group: DataGroup, data: ApkRecord[] | GgRecord[]) => {
-    console.log(`🔵 AppContext.setDataByGroup llamado para ${group}:`, data.length, 'registros');
+  const setDataByGroup = useCallback((group: DataGroup, data: ApkRecord[] | GgRecord[], isGG: boolean) => {
+    console.log(`🔵 AppContext.setDataByGroup llamado para ${group} (isGG: ${isGG}):`, data.length, 'registros');
     
-    // Extraer segmentos si es un archivo con vueltas (no GG)
+    // Extraer segmentos (solo de vueltas, NO de GG)
     const segmentNames = new Set<string>();
-    if (group === 'apk' || group === 'epk') {
+    if (!isGG) {
       (data as ApkRecord[]).forEach(record => {
-        if (record.vuelta) {
+        if (record.vuelta && !record.vuelta.toUpperCase().includes('GG')) {
           segmentNames.add(record.vuelta);
         }
       });
-    } else if (group === 'apk-gg' || group === 'epk-gg') {
-      (data as GgRecord[]).forEach(record => {
-        if (record.segmento) {
-          segmentNames.add(record.segmento);
-        }
-      });
     }
 
-    // Crear ProcessData según el tipo
-    const processData = initializeProcessData();
-    if (group === 'apk' || group === 'epk') {
-      processData.data = data as ApkRecord[];
-      processData.segments = Array.from(segmentNames).map(seg => ({ segment: seg, count: 0 }));
+    // Obtener datos actuales del grupo
+    const currentProcessData = getDataByGroup(group);
+    
+    // Actualizar la parte correspondiente (data o gg)
+    if (isGG) {
+      currentProcessData.gg = data as GgRecord[];
     } else {
-      processData.gg = data as GgRecord[];
+      currentProcessData.data = data as ApkRecord[];
+      currentProcessData.segments = Array.from(segmentNames).map(seg => ({ segment: seg, count: 0 }));
     }
 
     // Guardar en localStorage
-    saveDataByGroup(group, processData);
+    saveDataByGroup(group, currentProcessData);
 
     // Actualizar estado correspondiente
-    switch (group) {
-      case 'apk':
+    if (group === 'apk') {
+      if (isGG) {
+        // Actualizar solo GG de APK, mantener EPK
+        const epkGg = getDataByGroup('epk').gg;
+        setGgData([...data as GgRecord[], ...epkGg]);
+      } else {
         setApkData(data as ApkRecord[]);
-        break;
-      case 'apk-gg':
-        setApkGgData(data as GgRecord[]);
-        break;
-      case 'epk':
+      }
+    } else if (group === 'epk') {
+      if (isGG) {
+        // Actualizar solo GG de EPK, mantener APK
+        const apkGg = getDataByGroup('apk').gg;
+        setGgData([...apkGg, ...data as GgRecord[]]);
+      } else {
         setEpkData(data as ApkRecord[]);
-        break;
-      case 'epk-gg':
-        setEpkGgData(data as GgRecord[]);
-        break;
+      }
     }
 
-    // Actualizar segmentos globales si hay nuevos
+    // Actualizar segmentos globales si hay nuevos (solo de vueltas)
     if (segmentNames.size > 0) {
       const currentSegments = getSegments();
       const newSegments = Array.from(segmentNames).map(seg => ({
         segment: seg,
-        count: (data as any[]).filter(r => 
-          (r.vuelta === seg || r.segmento === seg)
-        ).length,
+        count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length,
       }));
       
       // Merge con segmentos existentes
@@ -125,7 +125,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       saveSegments(mergedSegments);
     }
 
-    console.log(`✅ Datos guardados en ${group}`);
+    console.log(`✅ Datos guardados en ${group} ${isGG ? '(GG)' : '(Vueltas)'}`);
   }, []);
 
   const setConcepts = (newConcepts: Concept[]) => {
@@ -140,48 +140,46 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const loadData = useCallback(() => {
     setApkData(getDataByGroup('apk').data);
-    setApkGgData(getDataByGroup('apk-gg').gg);
     setEpkData(getDataByGroup('epk').data);
-    setEpkGgData(getDataByGroup('epk-gg').gg);
+    const apkGg = getDataByGroup('apk').gg;
+    const epkGg = getDataByGroup('epk').gg;
+    setGgData([...apkGg, ...epkGg]);
     setConceptsState(getConcepts());
     setSegmentsState(getSegments());
   }, []);
 
   const clearData = useCallback(() => {
     setApkData([]);
-    setApkGgData([]);
     setEpkData([]);
-    setEpkGgData([]);
+    setGgData([]);
     setConceptsState([]);
     setSegmentsState([]);
     localStorage.clear();
   }, []);
 
   const clearGroupData = useCallback((group: DataGroup) => {
-    switch (group) {
-      case 'apk':
-        setApkData([]);
-        break;
-      case 'apk-gg':
-        setApkGgData([]);
-        break;
-      case 'epk':
-        setEpkData([]);
-        break;
-      case 'epk-gg':
-        setEpkGgData([]);
-        break;
+    const emptyData = initializeProcessData();
+    saveDataByGroup(group, emptyData);
+    
+    if (group === 'apk') {
+      setApkData([]);
+      // Recargar GG para mantener solo EPK
+      const epkGg = getDataByGroup('epk').gg;
+      setGgData(epkGg);
+    } else if (group === 'epk') {
+      setEpkData([]);
+      // Recargar GG para mantener solo APK
+      const apkGg = getDataByGroup('apk').gg;
+      setGgData(apkGg);
     }
-    saveDataByGroup(group, initializeProcessData());
   }, []);
 
   return (
     <AppContext.Provider
       value={{
         apkData,
-        apkGgData,
+        ggData,
         epkData,
-        epkGgData,
         concepts,
         segments,
         setDataByGroup,

@@ -34,6 +34,10 @@ import {
   DialogContent,
   DialogActions,
   Divider,
+  OutlinedInput,
+  ListItemText,
+  Checkbox,
+  Alert,
 } from '@mui/material';
 import {
   ArrowUpward,
@@ -41,6 +45,7 @@ import {
   ContentCopy,
   Download,
   FilterList,
+  SwapHoriz,
 } from '@mui/icons-material';
 import { getConcepts, getProcessData, saveProcessData } from '../../services/localStorage';
 import { useAppContext } from '../../context/AppContext';
@@ -77,6 +82,11 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedRecord, setSelectedRecord] = useState<ApkRecord | GgRecord | null>(null);
   const [selectedConcepto, setSelectedConcepto] = useState('');
+
+  // Estados para el modal de cambio masivo
+  const [isMassChangeModalOpen, setIsMassChangeModalOpen] = useState(false);
+  const [sourceConceptos, setSourceConceptos] = useState<string[]>([]);
+  const [targetConcepto, setTargetConcepto] = useState('');
 
   // Extraer valores únicos para los selects
   const uniqueConceptos = useMemo(() => {
@@ -191,6 +201,68 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     const concepts = getConcepts();
     return concepts.map(c => c.text);
   }, []);
+
+  // Funciones para el cambio masivo
+  const handleOpenMassChange = () => {
+    setSourceConceptos([]);
+    setTargetConcepto('');
+    setIsMassChangeModalOpen(true);
+  };
+
+  const handleCloseMassChange = () => {
+    setIsMassChangeModalOpen(false);
+    setSourceConceptos([]);
+    setTargetConcepto('');
+  };
+
+  // Obtener registros afectados por el cambio masivo
+  const affectedRecords = useMemo(() => {
+    if (sourceConceptos.length === 0) return [];
+    return data.filter(record => sourceConceptos.includes(record.concepto));
+  }, [data, sourceConceptos]);
+
+  const handleApplyMassChange = () => {
+    if (sourceConceptos.length === 0 || !targetConcepto) {
+      alert('Debes seleccionar al menos un concepto de origen y un concepto destino.');
+      return;
+    }
+
+    try {
+      const processData = getProcessData();
+      
+      if (type === 'apk') {
+        const updatedData = processData.data.map(record => 
+          sourceConceptos.includes(record.concepto)
+            ? { ...record, concepto: targetConcepto }
+            : record
+        );
+        
+        processData.data = updatedData;
+        saveProcessData(processData);
+        setApkData(updatedData);
+        
+        console.log(`✅ Cambio masivo aplicado en APK: ${affectedRecords.length} registros actualizados`);
+      } else {
+        const updatedData = processData.gg.map(record => 
+          sourceConceptos.includes(record.concepto)
+            ? { ...record, concepto: targetConcepto }
+            : record
+        );
+        
+        processData.gg = updatedData;
+        saveProcessData(processData);
+        setGgData(updatedData);
+        
+        console.log(`✅ Cambio masivo aplicado en GG: ${affectedRecords.length} registros actualizados`);
+      }
+      
+      alert(`Cambio masivo aplicado exitosamente a ${affectedRecords.length} registros.`);
+      handleCloseMassChange();
+    } catch (error) {
+      console.error('❌ Error al aplicar cambio masivo:', error);
+      alert('Error al aplicar el cambio masivo. Por favor intenta de nuevo.');
+    }
+  };
 
   // Definir columnas según el tipo de datos
   const columns = useMemo<ColumnDef<ApkRecord | GgRecord>[]>(() => {
@@ -513,7 +585,15 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
             variant="outlined"
           />
 
-          <Stack direction="row" spacing={1}>
+          <Stack direction="row" spacing={1} flexWrap="wrap">
+            <Button
+              size="small"
+              variant="outlined"
+              startIcon={<SwapHoriz />}
+              onClick={handleOpenMassChange}
+            >
+              Cambio masivo
+            </Button>
             <Button
               size="small"
               variant="outlined"
@@ -735,6 +815,119 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
             disabled={!selectedConcepto}
           >
             Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de cambio masivo */}
+      <Dialog 
+        open={isMassChangeModalOpen} 
+        onClose={handleCloseMassChange}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Cambio Masivo de Conceptos
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Selecciona los conceptos que deseas cambiar y el concepto destino al que serán reasignados.
+            </Typography>
+
+            {/* Formulario */}
+            <Stack spacing={3}>
+              {/* Select múltiple de conceptos origen */}
+              <FormControl fullWidth>
+                <InputLabel>Conceptos a cambiar</InputLabel>
+                <Select
+                  multiple
+                  value={sourceConceptos}
+                  onChange={(e) => setSourceConceptos(typeof e.target.value === 'string' ? e.target.value.split(',') : e.target.value)}
+                  input={<OutlinedInput label="Conceptos a cambiar" />}
+                  renderValue={(selected) => selected.join(', ')}
+                >
+                  {uniqueConceptos.map((concepto) => (
+                    <MenuItem key={concepto} value={concepto}>
+                      <Checkbox checked={sourceConceptos.indexOf(concepto) > -1} />
+                      <ListItemText primary={concepto} />
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Select de concepto destino */}
+              <FormControl fullWidth>
+                <InputLabel>Concepto destino</InputLabel>
+                <Select
+                  value={targetConcepto}
+                  label="Concepto destino"
+                  onChange={(e) => setTargetConcepto(e.target.value)}
+                >
+                  {availableConcepts.map((concepto) => (
+                    <MenuItem key={concepto} value={concepto}>
+                      {concepto}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              {/* Información de registros afectados */}
+              {sourceConceptos.length > 0 && (
+                <Alert severity="info">
+                  Se cambiarán <strong>{affectedRecords.length} registros</strong> de los conceptos seleccionados al concepto destino.
+                </Alert>
+              )}
+
+              {/* Tabla de registros afectados */}
+              {affectedRecords.length > 0 && (
+                <Box>
+                  <Typography variant="subtitle2" gutterBottom sx={{ mt: 2 }}>
+                    Registros que serán afectados:
+                  </Typography>
+                  <TableContainer component={Paper} variant="outlined" sx={{ maxHeight: 300 }}>
+                    <Table size="small" stickyHeader>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>ID</TableCell>
+                          <TableCell>Fecha</TableCell>
+                          <TableCell>Proveedor</TableCell>
+                          <TableCell>Concepto Actual</TableCell>
+                          <TableCell>Importe</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {affectedRecords.map((record) => (
+                          <TableRow key={record.id}>
+                            <TableCell>{record.id}</TableCell>
+                            <TableCell>{record.fecha}</TableCell>
+                            <TableCell>{record.proveedor}</TableCell>
+                            <TableCell>
+                              <Chip label={record.concepto} size="small" />
+                            </TableCell>
+                            <TableCell>
+                              ${record.importe.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              )}
+            </Stack>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseMassChange}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleApplyMassChange} 
+            variant="contained"
+            disabled={sourceConceptos.length === 0 || !targetConcepto}
+          >
+            Aplicar Cambio
           </Button>
         </DialogActions>
       </Dialog>

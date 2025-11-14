@@ -42,7 +42,8 @@ import {
   Download,
   FilterList,
 } from '@mui/icons-material';
-import { getConcepts } from '../../services/localStorage';
+import { getConcepts, getProcessData, saveProcessData } from '../../services/localStorage';
+import { useAppContext } from '../../context/AppContext';
 import type { ApkRecord, GgRecord, DataType } from '../../types';
 
 interface DataTableProps {
@@ -58,6 +59,7 @@ interface DataTableProps {
  * Incluye ordenamiento, filtrado, paginación y acciones
  */
 export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableProps) => {
+  const { setApkData, setGgData } = useAppContext();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -136,19 +138,52 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   };
 
   const handleSaveConcepto = () => {
-    if (!selectedRecord) return;
+    if (!selectedRecord || !selectedConcepto) return;
 
-    // Aquí se implementará la lógica para actualizar el concepto en localStorage
-    console.log('Guardando concepto:', selectedConcepto, 'para registro:', selectedRecord);
+    console.log('💾 Guardando concepto:', selectedConcepto, 'para registro ID:', selectedRecord.id);
     
-    // TODO: Implementar actualización en localStorage
-    // 1. Obtener datos actuales
-    // 2. Encontrar el registro por ID
-    // 3. Actualizar el concepto
-    // 4. Guardar de vuelta en localStorage
-    // 5. Actualizar el contexto
-    
-    handleCloseModal();
+    try {
+      // 1. Obtener datos actuales del proceso
+      const processData = getProcessData();
+      
+      // 2. Actualizar el registro según el tipo
+      if (type === 'apk') {
+        // Encontrar y actualizar el registro APK
+        const updatedData = processData.data.map(record => 
+          record.id === selectedRecord.id 
+            ? { ...record, concepto: selectedConcepto }
+            : record
+        );
+        
+        // 3. Guardar en localStorage
+        processData.data = updatedData;
+        saveProcessData(processData);
+        
+        // 4. Actualizar el contexto para reflejar el cambio
+        setApkData(updatedData);
+        console.log('✅ Concepto actualizado en APK');
+      } else {
+        // Encontrar y actualizar el registro GG
+        const updatedData = processData.gg.map(record => 
+          record.id === selectedRecord.id 
+            ? { ...record, concepto: selectedConcepto }
+            : record
+        );
+        
+        // 3. Guardar en localStorage
+        processData.gg = updatedData;
+        saveProcessData(processData);
+        
+        // 4. Actualizar el contexto para reflejar el cambio
+        setGgData(updatedData);
+        console.log('✅ Concepto actualizado en GG');
+      }
+      
+      handleCloseModal();
+    } catch (error) {
+      console.error('❌ Error al guardar concepto:', error);
+      alert('Error al guardar el concepto. Por favor intenta de nuevo.');
+    }
   };
 
   // Obtener conceptos predefinidos

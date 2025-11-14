@@ -13,8 +13,13 @@ import {
   Alert,
   Stack,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TableFooter,
 } from '@mui/material';
-import { Calculate, ContentCopy, Download } from '@mui/icons-material';
+import { Calculate, ContentCopy, Download, BarChart } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../../context/AppContext';
 import { getProcessData, saveProcessData } from '../../services/localStorage';
@@ -31,6 +36,7 @@ export const ExpenseProration = () => {
   const { showSuccess, showError, showWarning, notification, hideNotification } = useNotification();
   const [prorrateoData, setProrrateoData] = useState<ProrrateoRecord[]>([]);
   const [showResults, setShowResults] = useState(false);
+  const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
 
   // Calcular total de cerdos
   const totalCerdos = useMemo(() => {
@@ -57,6 +63,31 @@ export const ExpenseProration = () => {
   const totalProrrateo = useMemo(() => {
     return prorrateoData.reduce((sum, record) => sum + record.importe, 0);
   }, [prorrateoData]);
+
+  // Calcular desglose por segmento
+  const segmentBreakdown = useMemo(() => {
+    if (prorrateoData.length === 0) return [];
+
+    const breakdown = new Map<string, { total: number; count: number }>();
+
+    prorrateoData.forEach(record => {
+      const segment = record.vuelta;
+      const existing = breakdown.get(segment) || { total: 0, count: 0 };
+      breakdown.set(segment, {
+        total: existing.total + record.importe,
+        count: existing.count + 1,
+      });
+    });
+
+    return Array.from(breakdown.entries())
+      .map(([segment, data]) => ({
+        segmento: segment,
+        total: data.total,
+        porcentaje: totalProrrateo > 0 ? (data.total / totalProrrateo) * 100 : 0,
+        registros: data.count,
+      }))
+      .sort((a, b) => b.total - a.total); // Ordenar por total descendente
+  }, [prorrateoData, totalProrrateo]);
 
   // Formatear fecha para prorrateo (último día del mes actual)
   const formatDateForProrrateo = (date: Date): string => {
@@ -314,6 +345,15 @@ export const ExpenseProration = () => {
               >
                 Descargar Excel
               </Button>
+              <Button
+                variant="contained"
+                color="secondary"
+                startIcon={<BarChart />}
+                onClick={() => setIsBreakdownModalOpen(true)}
+                fullWidth
+              >
+                Ver Desglose por Segmento
+              </Button>
             </Stack>
 
             {/* Tabla de resultados */}
@@ -358,6 +398,89 @@ export const ExpenseProration = () => {
           </Box>
         )}
       </Paper>
+
+      {/* Modal de Desglose por Segmento */}
+      <Dialog
+        open={isBreakdownModalOpen}
+        onClose={() => setIsBreakdownModalOpen(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          📊 Desglose de Prorrateo por Segmento
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Distribución del prorrateo de gastos entre los segmentos configurados.
+            </Typography>
+
+            <TableContainer component={Paper} variant="outlined">
+              <Table size="small">
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: 'primary.50' }}>
+                    <TableCell sx={{ fontWeight: 700 }}>Segmento</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Total Prorrateado</TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700 }}>Porcentaje</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700 }}>Registros</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {segmentBreakdown.map((item) => (
+                    <TableRow key={item.segmento} hover>
+                      <TableCell>
+                        <Chip label={item.segmento} size="small" color="primary" variant="outlined" />
+                      </TableCell>
+                      <TableCell align="right">
+                        <Typography variant="body2" fontWeight={600}>
+                          ${item.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </Typography>
+                      </TableCell>
+                      <TableCell align="right">
+                        <Chip
+                          label={`${item.porcentaje.toFixed(2)}%`}
+                          size="small"
+                          color="success"
+                        />
+                      </TableCell>
+                      <TableCell align="center">
+                        <Typography variant="body2" color="text.secondary">
+                          {item.registros}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+                <TableFooter>
+                  <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                    <TableCell sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      TOTAL
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      ${totalProrrateo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                    </TableCell>
+                    <TableCell align="right" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      <Chip
+                        label="100.00%"
+                        size="small"
+                        color="primary"
+                      />
+                    </TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 700, fontSize: '0.95rem' }}>
+                      {prorrateoData.length}
+                    </TableCell>
+                  </TableRow>
+                </TableFooter>
+              </Table>
+            </TableContainer>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsBreakdownModalOpen(false)} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* Notificaciones */}
       <Snackbar

@@ -26,11 +26,10 @@ export function parseAccountCode(code: string): ParsedAccountCode | null {
   const accountCode = match[2]; // Segundo grupo (ej: "001")
 
   return {
-    full: trimmed,
+    full: code,
     mainGroup,
     accountCode,
-    isApk: mainGroup === '133',
-    isGg: mainGroup !== '133',
+    processType: mainGroup === '132' ? 'apk' : 'epk',
   };
 }
 
@@ -59,10 +58,10 @@ export function isValidAccountCode(code: string): boolean {
  * Determina el tipo de datos basado en el código de cuenta
  * 
  * @param code - Código completo de cuenta
- * @returns 'apk' si es 133-xxx, 'gg' si es otro
+ * @returns 'apk' si es 132-xxx, 'epk' si es 133-xxx
  */
-export function getDataTypeFromAccountCode(code: string): 'apk' | 'gg' | null {
+export function getDataTypeFromAccountCode(code: string): 'apk' | 'epk' | null {
   const parsed = parseAccountCode(code);
   if (!parsed) return null;
-  return parsed.isApk ? 'apk' : 'gg';
+  return parsed.processType;
 }

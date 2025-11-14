@@ -42,7 +42,7 @@ const TextConceptMappingManager: React.FC = () => {
     textPattern: '',
     matchType: 'startsWith' as 'startsWith' | 'contains' | 'exact',
     targetConcept: '',
-    dataType: 'apk' as 'apk' | 'gg' | 'both',
+    dataType: 'apk' as 'apk' | 'epk' | 'gg' | 'both',
     priority: 1,
   });
 
@@ -372,6 +372,7 @@ const TextConceptMappingManager: React.FC = () => {
                 label="Tipo de Datos"
               >
                 <MenuItem value="apk">Solo APK</MenuItem>
+                <MenuItem value="epk">Solo EPK</MenuItem>
                 <MenuItem value="gg">Solo GG</MenuItem>
                 <MenuItem value="both">Ambos (APK y GG)</MenuItem>
               </Select>

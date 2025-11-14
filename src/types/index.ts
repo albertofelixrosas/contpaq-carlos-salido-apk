@@ -57,7 +57,7 @@ export interface ConceptMapping {
   accountCode: string;      // Código de cuenta (ej: "001", "002")
   sourceText: string;        // Texto original del Excel
   targetConcept: string;     // Concepto destino
-  dataType: 'apk' | 'gg' | 'both';  // A qué tipo aplica
+  dataType: 'apk' | 'epk' | 'gg' | 'both';  // A qué tipo aplica
   createdAt: string;
 }
 
@@ -66,17 +66,16 @@ export interface TextConceptMapping {
   textPattern: string;       // Patrón de texto (ej: "GRANJAS", "ADMIN")
   matchType: 'startsWith' | 'contains' | 'exact';  // Tipo de coincidencia
   targetConcept: string;     // Concepto destino
-  dataType: 'apk' | 'gg' | 'both';  // A qué tipo aplica
+  dataType: 'apk' | 'epk' | 'gg' | 'both';  // A qué tipo aplica
   priority: number;          // Prioridad (menor = más alta)
   createdAt: string;
 }
 
 export interface ParsedAccountCode {
   full: string;              // Código completo (ej: "133-001-000-000-00")
-  mainGroup: string;         // Primer número (ej: "133")
+  mainGroup: string;         // Primer número (ej: "133" o "132")
   accountCode: string;       // Segundo número (ej: "001")
-  isApk: boolean;            // true si mainGroup es "133"
-  isGg: boolean;             // true si mainGroup NO es "133"
+  processType: ProcessType;  // 'apk' si mainGroup es "132", 'epk' si es "133"
 }
 
 // ============================================
@@ -161,7 +160,34 @@ export interface MassReplacementSelection {
 // TIPO DE DATOS
 // ============================================
 
-export type DataType = 'apk' | 'gg';
+// APK = Aparcería (132-xxx-xxx-xxx-xx)
+// EPK = Engorda/Producción (133-xxx-xxx-xxx-xx)
+// GG = Gastos Generales (ambos pueden tener)
+export type ProcessType = 'apk' | 'epk';
+export type DataType = 'apk' | 'epk' | 'gg';
+export type DataGroup = 'apk' | 'apk-gg' | 'epk' | 'epk-gg';
+
+// ============================================
+// DETECCIÓN AUTOMÁTICA DE ARCHIVOS
+// ============================================
+
+export interface FileDetectionResult {
+  processType: ProcessType;     // 'apk' (132) o 'epk' (133)
+  hasVueltas: boolean;          // true si tiene "Segmento:" con APK/EPK (archivo principal)
+  isGastoGeneral: boolean;      // true si tiene segmentos GG o NO tiene segmentos (archivo GG)
+  periodo: string;              // Extraído de celda A3 (ej: "ENERO 2024")
+  dataGroup: DataGroup;         // 'apk', 'apk-gg', 'epk', 'epk-gg'
+  confidence: number;           // 0-100, qué tan seguro está de la detección
+  indicators: {
+    foundCode132: boolean;      // Encontró código 132-xxx
+    foundCode133: boolean;      // Encontró código 133-xxx
+    foundAparceriaText: boolean; // Encontró "APARCERÍA EN PROCESO"
+    foundProduccionText: boolean; // Encontró "PRODUCCION DE CERDOS EN PROCESO"
+    foundSegmentos: boolean;    // Encontró líneas con "Segmento:"
+    foundSegmentosGG: boolean;  // Encontró segmentos con " GG"
+    foundSegmentosVueltas: boolean; // Encontró segmentos con " APK" o " EPK"
+  };
+}
 
 // ============================================
 // TIPOS PARA CUENTA CONTABLE

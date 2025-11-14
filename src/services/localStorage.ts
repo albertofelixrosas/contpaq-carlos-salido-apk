@@ -1,11 +1,14 @@
-import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping } from '../types';
+import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping, DataGroup } from '../types';
 
 /**
  * Servicio para gestión de localStorage
  */
 
 const STORAGE_KEYS = {
-  APK: 'apk',
+  APK: 'apk',              // Aparcería - Vueltas
+  APK_GG: 'apk-gg',        // Aparcería - Gastos Generales
+  EPK: 'epk',              // Producción/Engorda - Vueltas
+  EPK_GG: 'epk-gg',        // Producción/Engorda - Gastos Generales
   CONCEPTS: 'concepts',
   CONCEPT_MAPPINGS: 'conceptMappings',
   TEXT_CONCEPT_MAPPINGS: 'textConceptMappings',
@@ -48,8 +51,86 @@ export function saveProcessData(data: ProcessData): void {
     localStorage.setItem(STORAGE_KEYS.APK, JSON.stringify(data));
   } catch (error) {
     console.error('Error al guardar datos del proceso:', error);
-    throw new Error('No se pudo guardar los datos en localStorage');
+    throw new Error('No se pudieron guardar los datos');
   }
+}
+
+// ============================================
+// FUNCIONES POR GRUPO ESPECÍFICO
+// ============================================
+
+/**
+ * Obtiene la clave de storage según el grupo de datos
+ */
+function getStorageKeyForGroup(group: DataGroup): string {
+  switch (group) {
+    case 'apk':
+      return STORAGE_KEYS.APK;
+    case 'apk-gg':
+      return STORAGE_KEYS.APK_GG;
+    case 'epk':
+      return STORAGE_KEYS.EPK;
+    case 'epk-gg':
+      return STORAGE_KEYS.EPK_GG;
+  }
+}
+
+/**
+ * Guarda datos de un grupo específico
+ */
+export function saveDataByGroup(group: DataGroup, data: ProcessData): void {
+  try {
+    const key = getStorageKeyForGroup(group);
+    localStorage.setItem(key, JSON.stringify(data));
+    console.log(`✅ Datos guardados en ${key}:`, data.data.length, 'registros');
+  } catch (error) {
+    console.error(`Error al guardar datos en ${group}:`, error);
+    throw new Error(`No se pudieron guardar los datos en ${group}`);
+  }
+}
+
+/**
+ * Obtiene datos de un grupo específico
+ */
+export function getDataByGroup(group: DataGroup): ProcessData {
+  try {
+    const key = getStorageKeyForGroup(group);
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : initializeProcessData();
+  } catch (error) {
+    console.error(`Error al obtener datos de ${group}:`, error);
+    return initializeProcessData();
+  }
+}
+
+/**
+ * Limpia datos de un grupo específico
+ */
+export function clearDataByGroup(group: DataGroup): void {
+  try {
+    const key = getStorageKeyForGroup(group);
+    localStorage.removeItem(key);
+    console.log(`🗑️ Datos eliminados de ${key}`);
+  } catch (error) {
+    console.error(`Error al limpiar datos de ${group}:`, error);
+  }
+}
+
+/**
+ * Obtiene todos los datos de todos los grupos
+ */
+export function getAllGroupsData(): {
+  apk: ProcessData;
+  apkGg: ProcessData;
+  epk: ProcessData;
+  epkGg: ProcessData;
+} {
+  return {
+    apk: getDataByGroup('apk'),
+    apkGg: getDataByGroup('apk-gg'),
+    epk: getDataByGroup('epk'),
+    epkGg: getDataByGroup('epk-gg'),
+  };
 }
 
 /**
@@ -312,7 +393,7 @@ export function saveConceptMappings(mappings: ConceptMapping[]): void {
  */
 export function findMappingByAccountCode(
   accountCode: string,
-  dataType: 'apk' | 'gg'
+  dataType: 'apk' | 'epk' | 'gg'
 ): ConceptMapping | undefined {
   const mappings = getConceptMappings();
   return mappings.find(
@@ -326,7 +407,7 @@ export function findMappingByAccountCode(
 export function applyConceptMapping(
   accountCode: string,
   originalText: string,
-  dataType: 'apk' | 'gg'
+  dataType: 'apk' | 'epk' | 'gg'
 ): string {
   const mapping = findMappingByAccountCode(accountCode, dataType);
   
@@ -375,7 +456,7 @@ export function saveTextConceptMappings(mappings: TextConceptMapping[]): void {
  */
 export function findMappingByConceptText(
   conceptText: string,
-  dataType: 'apk' | 'gg'
+  dataType: 'apk' | 'epk' | 'gg'
 ): TextConceptMapping | undefined {
   const mappings = getTextConceptMappings();
   
@@ -421,7 +502,7 @@ export function applyFullConceptMapping(
   accountCode: string,
   originalText: string,
   conceptText: string,
-  dataType: 'apk' | 'gg'
+  dataType: 'apk' | 'epk' | 'gg'
 ): string {
   // 1. PRIORIDAD ALTA: Mapeo por texto de concepto de pago
   const textMapping = findMappingByConceptText(conceptText, dataType);

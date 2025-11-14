@@ -1,77 +1,132 @@
 /**
  * Contexto global de la aplicación
  * Maneja el estado compartido entre todos los features
+ * Ahora soporta 4 grupos: APK, APK-GG, EPK, EPK-GG
  */
 
 import { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
-import type { ApkRecord, GgRecord, Concept, Segment } from '../types';
+import type { ApkRecord, GgRecord, Concept, Segment, DataGroup } from '../types';
 import {
-  saveApkData,
-  saveGgData,
-  getApkData,
-  getGgData,
+  getDataByGroup,
+  saveDataByGroup,
   saveConcepts,
   getConcepts,
   saveSegments,
   getSegments,
   initializePredefinedConcepts,
+  initializeProcessData,
 } from '../services/localStorage';
 
 interface AppContextType {
-  // Data
-  apkData: ApkRecord[];
-  ggData: GgRecord[];
+  // Data - 4 grupos separados
+  apkData: ApkRecord[];        // Aparcería - Vueltas
+  apkGgData: GgRecord[];       // Aparcería - Gastos Generales
+  epkData: ApkRecord[];        // Producción/Engorda - Vueltas
+  epkGgData: GgRecord[];       // Producción/Engorda - Gastos Generales
   concepts: Concept[];
   segments: Segment[];
   
   // Actions
-  setApkData: (data: ApkRecord[]) => void;
-  setGgData: (data: GgRecord[]) => void;
+  setDataByGroup: (group: DataGroup, data: ApkRecord[] | GgRecord[]) => void;
   setConcepts: (concepts: Concept[]) => void;
   setSegments: (segments: Segment[]) => void;
   
   // Helpers
   loadData: () => void;
   clearData: () => void;
+  clearGroupData: (group: DataGroup) => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider = ({ children }: { children: ReactNode }) => {
-  const [apkData, setApkDataState] = useState<ApkRecord[]>(() => getApkData());
-  const [ggData, setGgDataState] = useState<GgRecord[]>(() => getGgData());
+  // Inicializar los 4 grupos desde localStorage
+  const [apkData, setApkData] = useState<ApkRecord[]>(() => getDataByGroup('apk').data);
+  const [apkGgData, setApkGgData] = useState<GgRecord[]>(() => getDataByGroup('apk-gg').gg);
+  const [epkData, setEpkData] = useState<ApkRecord[]>(() => getDataByGroup('epk').data);
+  const [epkGgData, setEpkGgData] = useState<GgRecord[]>(() => getDataByGroup('epk-gg').gg);
+  
   const [concepts, setConceptsState] = useState<Concept[]>(() => {
-    // Inicializar conceptos predefinidos si no existen
     initializePredefinedConcepts();
     return getConcepts();
   });
   const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());
 
-  const setApkData = (data: ApkRecord[]) => {
-    console.log('🔵 AppContext.setApkData llamado con:', data.length, 'registros');
-    console.log('🔵 Primer registro:', data[0]);
-    setApkDataState(data);
-    console.log('🔵 Estado APK actualizado');
-    // Extraer segmentos únicos del campo "vuelta" en ApkRecord
+  const setDataByGroup = useCallback((group: DataGroup, data: ApkRecord[] | GgRecord[]) => {
+    console.log(`🔵 AppContext.setDataByGroup llamado para ${group}:`, data.length, 'registros');
+    
+    // Extraer segmentos si es un archivo con vueltas (no GG)
     const segmentNames = new Set<string>();
-    data.forEach(record => {
-      if (record.vuelta) {
-        segmentNames.add(record.vuelta);
-      }
-    });
-    console.log('🔵 Segmentos encontrados:', Array.from(segmentNames));
-    saveApkData(data, segmentNames);
-    console.log('🔵 Datos APK guardados en localStorage');
-  };
+    if (group === 'apk' || group === 'epk') {
+      (data as ApkRecord[]).forEach(record => {
+        if (record.vuelta) {
+          segmentNames.add(record.vuelta);
+        }
+      });
+    } else if (group === 'apk-gg' || group === 'epk-gg') {
+      (data as GgRecord[]).forEach(record => {
+        if (record.segmento) {
+          segmentNames.add(record.segmento);
+        }
+      });
+    }
 
-  const setGgData = (data: GgRecord[]) => {
-    console.log('🔵 AppContext.setGgData llamado con:', data.length, 'registros');
-    setGgDataState(data);
-    console.log('🔵 Estado GG actualizado');
-    saveGgData(data);
-    console.log('🔵 Datos GG guardados en localStorage');
-  };
+    // Crear ProcessData según el tipo
+    const processData = initializeProcessData();
+    if (group === 'apk' || group === 'epk') {
+      processData.data = data as ApkRecord[];
+      processData.segments = Array.from(segmentNames).map(seg => ({ segment: seg, count: 0 }));
+    } else {
+      processData.gg = data as GgRecord[];
+    }
+
+    // Guardar en localStorage
+    saveDataByGroup(group, processData);
+
+    // Actualizar estado correspondiente
+    switch (group) {
+      case 'apk':
+        setApkData(data as ApkRecord[]);
+        break;
+      case 'apk-gg':
+        setApkGgData(data as GgRecord[]);
+        break;
+      case 'epk':
+        setEpkData(data as ApkRecord[]);
+        break;
+      case 'epk-gg':
+        setEpkGgData(data as GgRecord[]);
+        break;
+    }
+
+    // Actualizar segmentos globales si hay nuevos
+    if (segmentNames.size > 0) {
+      const currentSegments = getSegments();
+      const newSegments = Array.from(segmentNames).map(seg => ({
+        segment: seg,
+        count: (data as any[]).filter(r => 
+          (r.vuelta === seg || r.segmento === seg)
+        ).length,
+      }));
+      
+      // Merge con segmentos existentes
+      const mergedSegments = [...currentSegments];
+      newSegments.forEach(newSeg => {
+        const existing = mergedSegments.find(s => s.segment === newSeg.segment);
+        if (existing) {
+          existing.count += newSeg.count;
+        } else {
+          mergedSegments.push(newSeg);
+        }
+      });
+      
+      setSegmentsState(mergedSegments);
+      saveSegments(mergedSegments);
+    }
+
+    console.log(`✅ Datos guardados en ${group}`);
+  }, []);
 
   const setConcepts = (newConcepts: Concept[]) => {
     setConceptsState(newConcepts);
@@ -84,33 +139,57 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const loadData = useCallback(() => {
-    setApkDataState(getApkData());
-    setGgDataState(getGgData());
+    setApkData(getDataByGroup('apk').data);
+    setApkGgData(getDataByGroup('apk-gg').gg);
+    setEpkData(getDataByGroup('epk').data);
+    setEpkGgData(getDataByGroup('epk-gg').gg);
     setConceptsState(getConcepts());
     setSegmentsState(getSegments());
   }, []);
 
   const clearData = useCallback(() => {
-    setApkDataState([]);
-    setGgDataState([]);
+    setApkData([]);
+    setApkGgData([]);
+    setEpkData([]);
+    setEpkGgData([]);
     setConceptsState([]);
     setSegmentsState([]);
     localStorage.clear();
+  }, []);
+
+  const clearGroupData = useCallback((group: DataGroup) => {
+    switch (group) {
+      case 'apk':
+        setApkData([]);
+        break;
+      case 'apk-gg':
+        setApkGgData([]);
+        break;
+      case 'epk':
+        setEpkData([]);
+        break;
+      case 'epk-gg':
+        setEpkGgData([]);
+        break;
+    }
+    saveDataByGroup(group, initializeProcessData());
   }, []);
 
   return (
     <AppContext.Provider
       value={{
         apkData,
-        ggData,
+        apkGgData,
+        epkData,
+        epkGgData,
         concepts,
         segments,
-        setApkData,
-        setGgData,
+        setDataByGroup,
         setConcepts,
         setSegments,
         loadData,
         clearData,
+        clearGroupData,
       }}
     >
       {children}

@@ -1,4 +1,4 @@
-import type { ApkRecord, GgRecord } from '../../types';
+import type { ApkRecord, GgRecord, FileDetectionResult, ProcessType, DataGroup } from '../../types';
 import { extractAccountCode } from '../../utils/accountCodeParser';
 import { applyFullConceptMapping } from '../../services/localStorage';
 
@@ -7,6 +7,137 @@ import { applyFullConceptMapping } from '../../services/localStorage';
 // ========================================
 const accountNumberRegex = /^\d{3}-\d{3}-\d{3}-\d{3}-\d{2}$/;
 const excelCommonDateRegex = /^([0-2]?\d|3[01])\/(Ene|Feb|Mar|Abr|May|Jun|Jul|Ago|Sep|Oct|Nov|Dic)\/\d{4}\s?$/;
+
+// ========================================
+// DETECCIÓN AUTOMÁTICA DE TIPO DE ARCHIVO
+// ========================================
+
+/**
+ * Detecta automáticamente el tipo de archivo Excel:
+ * - APK (132) o EPK (133) según códigos de cuenta
+ * - Si tiene segmentos/vueltas (archivo principal) o no (GG)
+ * - Periodo del archivo (celda A3)
+ */
+export const detectFileType = (rawData: unknown[]): FileDetectionResult => {
+  console.log('🔍 Iniciando detección automática de archivo...');
+  
+  const indicators = {
+    foundCode132: false,
+    foundCode133: false,
+    foundAparceriaText: false,
+    foundProduccionText: false,
+    foundSegmentos: false,
+    foundSegmentosGG: false,
+    foundSegmentosVueltas: false,
+  };
+
+  let periodo = '';
+  
+  // 1. Intentar extraer el periodo de la celda A3 (fila 2, índice 0)
+  if (rawData.length > 2) {
+    const row3 = rawData[2] as any[];
+    const cellA3 = String(row3?.[0] || '').trim().toUpperCase();
+    
+    // Buscar patrones de periodo: "ENERO 2024", "PERIODO: ENERO 2024", etc.
+    const periodoMatch = cellA3.match(/(ENERO|FEBRERO|MARZO|ABRIL|MAYO|JUNIO|JULIO|AGOSTO|SEPTIEMBRE|OCTUBRE|NOVIEMBRE|DICIEMBRE)\s*\d{4}/i);
+    if (periodoMatch) {
+      periodo = periodoMatch[0];
+    } else {
+      // Si no encuentra el patrón, usar el texto completo si es corto
+      periodo = cellA3.length < 50 ? cellA3 : 'No detectado';
+    }
+  }
+
+  // 2. Escanear las filas buscando indicadores
+  for (let i = 0; i < Math.min(rawData.length, 100); i++) { // Escanear primeras 100 filas
+    const row = rawData[i] as any[];
+    const firstCell = String(row?.[0] || '').trim();
+    const secondCell = String(row?.[1] || '').trim().toUpperCase();
+
+    // Buscar códigos de cuenta
+    if (accountNumberRegex.test(firstCell)) {
+      if (firstCell.startsWith('132-')) {
+        indicators.foundCode132 = true;
+      }
+      if (firstCell.startsWith('133-')) {
+        indicators.foundCode133 = true;
+      }
+
+      // Buscar textos característicos
+      if (secondCell.includes('APARCERÍA') && secondCell.includes('PROCESO')) {
+        indicators.foundAparceriaText = true;
+      }
+      if (secondCell.includes('PRODUCCION') && secondCell.includes('CERDOS') && secondCell.includes('PROCESO')) {
+        indicators.foundProduccionText = true;
+      }
+    }
+
+    // Buscar segmentos y determinar si son GG o Vueltas
+    if (firstCell.toLowerCase().startsWith('segmento')) {
+      indicators.foundSegmentos = true;
+      
+      // Verificar si el segmento es GG (termina con " GG")
+      const upperFirstCell = firstCell.toUpperCase();
+      if (upperFirstCell.includes(' GG')) {
+        indicators.foundSegmentosGG = true;
+      } else if (upperFirstCell.includes(' APK') || upperFirstCell.includes(' EPK')) {
+        indicators.foundSegmentosVueltas = true;
+      }
+    }
+  }
+
+  // 3. Determinar ProcessType (APK o EPK)
+  let processType: ProcessType;
+  let confidence = 0;
+
+  if (indicators.foundCode132 || indicators.foundAparceriaText) {
+    processType = 'apk';
+    confidence += indicators.foundCode132 ? 50 : 0;
+    confidence += indicators.foundAparceriaText ? 40 : 0;
+  } else if (indicators.foundCode133 || indicators.foundProduccionText) {
+    processType = 'epk';
+    confidence += indicators.foundCode133 ? 50 : 0;
+    confidence += indicators.foundProduccionText ? 40 : 0;
+  } else {
+    // Default a EPK si no se encuentra nada (mantener compatibilidad)
+    processType = 'epk';
+    confidence = 20;
+  }
+
+  // 4. Determinar si es archivo principal (con vueltas) o GG
+  // Si encontramos segmentos GG pero NO vueltas, es archivo GG
+  // Si encontramos segmentos vueltas (APK/EPK), es archivo de vueltas
+  const hasVueltas = indicators.foundSegmentosVueltas;
+  const isGastoGeneral = indicators.foundSegmentosGG && !indicators.foundSegmentosVueltas;
+  
+  // Si no hay segmentos, asumir que es GG (sin segmentos = sin vueltas)
+  if (!indicators.foundSegmentos) {
+    // No hay segmentos en absoluto, probablemente es archivo GG sin la estructura de segmentos
+  }
+  
+  confidence += hasVueltas ? 10 : 5;
+
+  // 5. Construir DataGroup
+  let dataGroup: DataGroup;
+  if (processType === 'apk') {
+    dataGroup = isGastoGeneral ? 'apk-gg' : 'apk';
+  } else {
+    dataGroup = isGastoGeneral ? 'epk-gg' : 'epk';
+  }
+
+  const result: FileDetectionResult = {
+    processType,
+    hasVueltas,
+    isGastoGeneral,
+    periodo: periodo || 'No detectado',
+    dataGroup,
+    confidence: Math.min(confidence, 100),
+    indicators,
+  };
+
+  console.log('✅ Detección completada:', result);
+  return result;
+};
 
 // ========================================
 // FUNCIONES AUXILIARES
@@ -54,15 +185,17 @@ function parseDateString(dateString: string): { monthString: string; year: numbe
 }
 
 // ========================================
-// PROCESAMIENTO DE DATOS APK (copiado exactamente del vanilla original)
+// PROCESAMIENTO DE DATOS APK/EPK (principal con vueltas/segmentos)
 // ========================================
 
 /**
- * Procesa los datos raw de Excel y los convierte en datos APK estructurados
- * LÓGICA EXACTA DEL CÓDIGO VANILLA ORIGINAL - NO MODIFICAR
+ * Procesa los datos raw de Excel y los convierte en datos APK/EPK estructurados
+ * Funciona tanto para Aparcería (132) como para Producción/Engorda (133)
+ * @param rawData - Datos crudos del Excel
+ * @param processType - 'apk' o 'epk' según el tipo detectado
  */
-export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
-  console.log('🔍 normalizeApkData iniciado con', rawData.length, 'filas');
+export const normalizeApkData = (rawData: unknown[], processType: ProcessType = 'epk'): ApkRecord[] => {
+  console.log(`🔍 normalizeApkData iniciado (${processType.toUpperCase()}) con`, rawData.length, 'filas');
   console.log('🔍 Primera fila (encabezados):', rawData[0]);
   console.log('🔍 Segunda fila (datos):', rawData[1]);
   
@@ -142,7 +275,7 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
         accountCode || "",
         currentOriginalAccountName,
         paymentConcept,
-        'apk'
+        processType // Usa el processType detectado (apk o epk)
       );
 
       // En caso de que un valor no exista, se asigna cadena vacía o 0
@@ -180,13 +313,18 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
 };
 
 // ========================================
-// PROCESAMIENTO DE DATOS GG
+// PROCESAMIENTO DE DATOS GG (Gastos Generales)
 // ========================================
 
 /**
  * Procesa los datos raw de Excel y los convierte en datos GG estructurados
+ * Funciona tanto para Aparcería (132) como para Producción/Engorda (133)
+ * @param rawData - Datos crudos del Excel
+ * @param processType - 'apk' o 'epk' según el tipo detectado
  */
-export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
+export const normalizeGgData = (rawData: unknown[], processType: ProcessType = 'epk'): GgRecord[] => {
+  console.log(`🔍 normalizeGgData iniciado (${processType.toUpperCase()}) con`, rawData.length, 'filas');
+  
   // Variables para mantener el estado actual de los valores del segmento y cuenta contable
   let currentAccountName = "";
   let currentAccountCode = ""; // Guardar el código de cuenta

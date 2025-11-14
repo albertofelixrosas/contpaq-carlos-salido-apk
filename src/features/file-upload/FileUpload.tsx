@@ -17,41 +17,39 @@ import {
   Error as ErrorIcon,
   Delete,
 } from '@mui/icons-material';
-import type { DataType } from '../../types';
+import type { FileDetectionResult } from '../../types';
+import { detectFileType } from './fileParser';
+import { FileConfirmationDialog } from './FileConfirmationDialog';
 
 interface FileUploadProps {
-  onFileProcessed: (data: unknown, type: DataType) => void;
+  onFileProcessed: (data: unknown, detection: FileDetectionResult) => void;
   onError: (message: string) => void;
   onSuccess: (message: string) => void;
 }
 
 interface FileState {
   file: File | null;
-  status: 'idle' | 'processing' | 'success' | 'error';
+  status: 'idle' | 'processing' | 'detecting' | 'confirming' | 'success' | 'error';
   error?: string;
   recordCount?: number;
+  detection?: FileDetectionResult;
+  rawData?: unknown;
 }
 
 /**
- * Componente de carga de archivos Excel (APK y GG)
- * Permite arrastrar y soltar o seleccionar archivos
- * Valida formato y tamaño antes de procesar
+ * Componente de carga de archivos Excel con detección automática
+ * Detecta automáticamente si es APK, EPK, con vueltas o GG
+ * Muestra modal de confirmación antes de guardar
  */
 export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadProps) => {
-  const [apkState, setApkState] = useState<FileState>({
-    file: null,
-    status: 'idle',
-  });
-  const [ggState, setGgState] = useState<FileState>({
+  const [fileState, setFileState] = useState<FileState>({
     file: null,
     status: 'idle',
   });
   const [isDragging, setIsDragging] = useState(false);
 
-  const processFile = async (file: File, type: DataType) => {
-    const setState = type === 'apk' ? setApkState : setGgState;
-    
-    setState({ file, status: 'processing' });
+  const processFile = async (file: File) => {
+    setFileState({ file, status: 'processing' });
 
     try {
       // Importar SheetJS dinámicamente
@@ -60,7 +58,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
       return new Promise<void>((resolve, reject) => {
         const reader = new FileReader();
         
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
           try {
             const data = new Uint8Array(e.target?.result as ArrayBuffer);
             const workbook = XLSX.read(data, { type: 'array' });
@@ -77,18 +75,23 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
               throw new Error('El archivo está vacío');
             }
 
-            setState({
+            // PASO 2: Detectar tipo de archivo
+            setFileState(prev => ({ ...prev, status: 'detecting' }));
+            const detection = detectFileType(jsonData);
+            
+            // PASO 3: Mostrar modal de confirmación
+            setFileState({
               file,
-              status: 'success',
+              status: 'confirming',
               recordCount: jsonData.length,
+              detection,
+              rawData: jsonData,
             });
 
-            onFileProcessed(jsonData, type);
-            onSuccess(`Archivo ${type.toUpperCase()} cargado: ${jsonData.length} registros`);
             resolve();
           } catch (error) {
             const errorMessage = error instanceof Error ? error.message : 'Error al procesar archivo';
-            setState({
+            setFileState({
               file,
               status: 'error',
               error: errorMessage,
@@ -100,7 +103,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
 
         reader.onerror = () => {
           const errorMessage = 'Error al leer el archivo';
-          setState({
+          setFileState({
             file,
             status: 'error',
             error: errorMessage,
@@ -113,7 +116,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
       });
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Error desconocido';
-      setState({
+      setFileState({
         file,
         status: 'error',
         error: errorMessage,
@@ -122,7 +125,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
     }
   };
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>, type: DataType) => {
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
       const file = files[0];
@@ -140,16 +143,29 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
         return;
       }
       
-      processFile(file, type);
+      processFile(file);
     }
   };
 
-  const handleRemoveFile = (type: DataType) => {
-    if (type === 'apk') {
-      setApkState({ file: null, status: 'idle' });
-    } else {
-      setGgState({ file: null, status: 'idle' });
+  const handleConfirmUpload = () => {
+    if (fileState.rawData && fileState.detection) {
+      setFileState(prev => ({ ...prev, status: 'success' }));
+      onFileProcessed(fileState.rawData, fileState.detection);
+      onSuccess(
+        `Archivo cargado: ${fileState.detection.dataGroup.toUpperCase()} - ${fileState.recordCount} registros`
+      );
     }
+  };
+
+  const handleCancelUpload = () => {
+    setFileState({
+      file: null,
+      status: 'idle',
+    });
+  };
+
+  const handleRemoveFile = () => {
+    setFileState({ file: null, status: 'idle' });
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -161,7 +177,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
     setIsDragging(false);
   };
 
-  const handleDrop = (e: React.DragEvent, type: DataType) => {
+  const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
 
@@ -182,166 +198,190 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
         return;
       }
       
-      processFile(file, type);
+      processFile(file);
     }
   };
 
-  const renderFileCard = (
-    title: string,
-    type: DataType,
-    state: FileState,
-  ) => {
-    return (
-      <Card
-        sx={{
-          border: isDragging ? '2px dashed' : '1px solid',
-          borderColor: state.status === 'success' ? 'success.main' : state.status === 'error' ? 'error.main' : 'divider',
-          backgroundColor: state.status === 'success' ? 'success.50' : 'background.paper',
-        }}
-      >
-        <CardContent>
-          <Typography variant="h6" gutterBottom>
-            {title}
-          </Typography>
-
-          <Box
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={(e) => handleDrop(e, type)}
-            sx={{
-              border: '2px dashed',
-              borderColor: isDragging ? 'primary.main' : 'grey.300',
-              borderRadius: 2,
-              padding: 3,
-              textAlign: 'center',
-              backgroundColor: isDragging ? 'primary.50' : 'transparent',
-              cursor: 'pointer',
-              transition: 'all 0.3s',
-              '&:hover': {
-                borderColor: 'primary.main',
-                backgroundColor: 'grey.50',
-              },
-            }}
-          >
-            {state.status === 'idle' && (
-              <>
-                <CloudUpload sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
-                <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
-                  Arrastra el archivo aquí
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                  o
-                </Typography>
-                <Button
-                  component="label"
-                  variant="contained"
-                  startIcon={<Upload />}
-                  size="medium"
-                  sx={{ mb: 2 }}
-                >
-                  Seleccionar archivo
-                  <input
-                    type="file"
-                    hidden
-                    accept=".xls,.xlsx"
-                    onChange={(e) => handleFileChange(e, type)}
-                  />
-                </Button>
-                <Typography variant="caption" color="text.secondary" display="block">
-                  Formatos: .xls, .xlsx (máx. 5MB)
-                </Typography>
-              </>
-            )}
-
-            {state.status === 'processing' && (
-              <Box>
-                <Typography variant="body1" gutterBottom>
-                  Procesando archivo...
-                </Typography>
-                <LinearProgress sx={{ mt: 2 }} />
-              </Box>
-            )}
-
-            {state.status === 'success' && state.file && (
-              <Box>
-                <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
-                <Typography variant="body1" gutterBottom>
-                  {state.file.name}
-                </Typography>
-                <Chip
-                  label={`${state.recordCount} registros`}
-                  color="success"
-                  size="small"
-                  sx={{ mb: 2 }}
-                />
-                <Box>
-                  <Button
-                    variant="outlined"
-                    color="error"
-                    startIcon={<Delete />}
-                    size="small"
-                    onClick={() => handleRemoveFile(type)}
-                  >
-                    Remover archivo
-                  </Button>
-                </Box>
-              </Box>
-            )}
-
-            {state.status === 'error' && (
-              <Box>
-                <ErrorIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
-                <Typography variant="body1" color="error" gutterBottom>
-                  {state.error || 'Error al procesar archivo'}
-                </Typography>
-                <Button
-                  variant="outlined"
-                  color="primary"
-                  size="small"
-                  onClick={() => handleRemoveFile(type)}
-                  sx={{ mt: 1 }}
-                >
-                  Intentar de nuevo
-                </Button>
-              </Box>
-            )}
-          </Box>
-        </CardContent>
-      </Card>
-    );
+  const getStatusColor = () => {
+    switch (fileState.status) {
+      case 'success':
+        return 'success.main';
+      case 'error':
+        return 'error.main';
+      case 'confirming':
+        return 'warning.main';
+      default:
+        return 'divider';
+    }
   };
 
   return (
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
         <Typography variant="h5" gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
-          📂 Carga de Archivos
+          📂 Carga de Archivo Excel
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Carga los archivos Excel exportados desde Contpaq. Puedes cargar solo APK, solo GG, o ambos.
+          Carga tu archivo Excel exportado desde Contpaq. El sistema detectará automáticamente si es APK, EPK, con vueltas o gastos generales.
         </Typography>
 
         <Alert severity="info" sx={{ mb: 3 }}>
-          <strong>APK:</strong> Archivo principal con movimientos contables
+          <strong>Detección Automática:</strong>
           <br />
-          <strong>GG:</strong> Archivo de gastos generales para prorrateo
+          • APK (Aparcería): Códigos 132-xxx o texto "APARCERÍA EN PROCESO"
+          <br />
+          • EPK (Producción/Engorda): Códigos 133-xxx o texto "PRODUCCION DE CERDOS EN PROCESO"
+          <br />
+          • Vueltas/Segmentos: Detecta líneas con "Segmento:"
+          <br />
+          • Gastos Generales (GG): Sin líneas de segmentos
         </Alert>
 
-        <Box sx={{ 
-          display: 'grid', 
-          gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, 
-          gap: { xs: 2, sm: 3 },
-        }}>
-          {renderFileCard('Archivo APK', 'apk', apkState)}
-          {renderFileCard('Archivo GG', 'gg', ggState)}
-        </Box>
+        <Card
+          sx={{
+            border: '2px',
+            borderStyle: isDragging ? 'dashed' : 'solid',
+            borderColor: getStatusColor(),
+            backgroundColor:
+              fileState.status === 'success'
+                ? 'success.50'
+                : fileState.status === 'error'
+                ? 'error.50'
+                : 'background.paper',
+          }}
+        >
+          <CardContent>
+            <Box
+              onDragOver={handleDragOver}
+              onDragLeave={handleDragLeave}
+              onDrop={handleDrop}
+              sx={{
+                border: '2px dashed',
+                borderColor: isDragging ? 'primary.main' : 'grey.300',
+                borderRadius: 2,
+                padding: 3,
+                textAlign: 'center',
+                backgroundColor: isDragging ? 'primary.50' : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.3s',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  backgroundColor: 'grey.50',
+                },
+              }}
+            >
+              {fileState.status === 'idle' && (
+                <>
+                  <CloudUpload sx={{ fontSize: 48, color: 'grey.400', mb: 2 }} />
+                  <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
+                    Arrastra el archivo Excel aquí
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+                    o
+                  </Typography>
+                  <Button variant="contained" component="label" startIcon={<Upload />}>
+                    Seleccionar Archivo
+                    <input type="file" hidden accept=".xls,.xlsx" onChange={handleFileChange} />
+                  </Button>
+                  <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
+                    Tamaño máximo: 5MB
+                  </Typography>
+                </>
+              )}
 
-        {(apkState.status === 'success' || ggState.status === 'success') && (
+              {(fileState.status === 'processing' || fileState.status === 'detecting') && (
+                <Box>
+                  <Upload sx={{ fontSize: 48, color: 'primary.main', mb: 2 }} />
+                  <Typography variant="body1" gutterBottom>
+                    {fileState.status === 'processing' ? 'Procesando archivo...' : 'Detectando tipo de archivo...'}
+                  </Typography>
+                  <LinearProgress sx={{ mt: 2 }} />
+                </Box>
+              )}
+
+              {fileState.status === 'confirming' && (
+                <Box>
+                  <CheckCircle sx={{ fontSize: 48, color: 'warning.main', mb: 2 }} />
+                  <Typography variant="body1" gutterBottom>
+                    Esperando confirmación...
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Por favor revisa la información detectada en el modal
+                  </Typography>
+                </Box>
+              )}
+
+              {fileState.status === 'success' && (
+                <Box>
+                  <CheckCircle sx={{ fontSize: 48, color: 'success.main', mb: 2 }} />
+                  <Typography variant="body1" gutterBottom sx={{ fontWeight: 500 }}>
+                    {fileState.file?.name}
+                  </Typography>
+                  <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', flexWrap: 'wrap', mb: 2 }}>
+                    {fileState.detection && (
+                      <>
+                        <Chip
+                          label={fileState.detection.processType.toUpperCase()}
+                          color={fileState.detection.processType === 'apk' ? 'primary' : 'secondary'}
+                          size="small"
+                        />
+                        <Chip
+                          label={fileState.detection.isGastoGeneral ? 'GG' : 'VUELTAS'}
+                          variant="outlined"
+                          size="small"
+                        />
+                        <Chip
+                          label={`${fileState.recordCount} registros`}
+                          color="success"
+                          size="small"
+                        />
+                      </>
+                    )}
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    color="error"
+                    size="small"
+                    startIcon={<Delete />}
+                    onClick={handleRemoveFile}
+                  >
+                    Remover archivo
+                  </Button>
+                </Box>
+              )}
+
+              {fileState.status === 'error' && (
+                <Box>
+                  <ErrorIcon sx={{ fontSize: 48, color: 'error.main', mb: 2 }} />
+                  <Typography variant="body1" color="error" gutterBottom>
+                    {fileState.error || 'Error al procesar archivo'}
+                  </Typography>
+                  <Button variant="outlined" color="primary" size="small" onClick={handleRemoveFile} sx={{ mt: 1 }}>
+                    Intentar de nuevo
+                  </Button>
+                </Box>
+              )}
+            </Box>
+          </CardContent>
+        </Card>
+
+        {fileState.status === 'success' && (
           <Alert severity="success" sx={{ mt: 3 }}>
-            ✅ Archivos cargados correctamente. Dirígete a la pestaña "Tabla de Datos" para visualizar y editar.
+            ✅ Archivo cargado correctamente en{' '}
+            <strong>{fileState.detection?.dataGroup.toUpperCase()}</strong>. Dirígete a la pestaña "Tabla de Datos"
+            para visualizar y editar.
           </Alert>
         )}
       </Paper>
+
+      {/* Modal de confirmación */}
+      <FileConfirmationDialog
+        open={fileState.status === 'confirming'}
+        detection={fileState.detection || null}
+        recordCount={fileState.recordCount || 0}
+        onConfirm={handleConfirmUpload}
+        onCancel={handleCancelUpload}
+      />
     </Box>
   );
 };

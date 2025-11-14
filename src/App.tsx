@@ -14,38 +14,63 @@ import { ExpenseProration } from './features/prorrateo';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
 import { normalizeApkData, normalizeGgData, validateApkData, validateGgData } from './features/file-upload/fileParser';
 import { useNotification } from './hooks/useNotification';
-import type { DataType } from './types';
+import type { FileDetectionResult } from './types';
 
 function AppContent() {
-  const { setApkData, setGgData, apkData, ggData, concepts, setConcepts, segments, setSegments } = useAppContext();
+  const { 
+    setDataByGroup, 
+    apkData, 
+    apkGgData, 
+    epkData, 
+    epkGgData, 
+    concepts, 
+    setConcepts, 
+    segments, 
+    setSegments 
+  } = useAppContext();
   const { showSuccess, showError } = useNotification();
-  const uniqueConceptsFromData = useUniqueConceptsFromData(apkData, ggData);
+  
+  // Combinar todos los datos para conceptos únicos
+  const allData = [...apkData, ...epkData];
+  const allGgData = [...apkGgData, ...epkGgData];
+  const uniqueConceptsFromData = useUniqueConceptsFromData(allData, allGgData);
 
-  const handleFileProcessed = (rawData: unknown, type: DataType) => {
-    console.log('📥 handleFileProcessed llamado:', { type, rawDataLength: (rawData as any[])?.length });
+  const handleFileProcessed = (rawData: unknown, detection: FileDetectionResult) => {
+    console.log('📥 handleFileProcessed llamado:', { 
+      dataGroup: detection.dataGroup,
+      processType: detection.processType,
+      isGastoGeneral: detection.isGastoGeneral,
+      rawDataLength: (rawData as any[])?.length 
+    });
+    
     try {
-      if (type === 'apk') {
-        const validation = validateApkData(rawData as unknown[]);
-        console.log('✓ Validación APK:', validation);
-        if (!validation.valid) {
-          showError(validation.error || 'Datos inválidos');
-          return;
-        }
-        const normalized = normalizeApkData(rawData as unknown[]);
-        console.log('✓ Datos APK normalizados:', normalized.length, 'registros');
-        setApkData(normalized);
-        console.log('✓ setApkData llamado');
-      } else {
-        const validation = validateGgData(rawData as unknown[]);
+      const dataArray = rawData as unknown[];
+      
+      // Determinar si es archivo con vueltas o GG
+      if (detection.isGastoGeneral) {
+        // Es archivo GG
+        const validation = validateGgData(dataArray);
         console.log('✓ Validación GG:', validation);
         if (!validation.valid) {
+          showError(validation.error || 'Datos GG inválidos');
+          return;
+        }
+        const normalized = normalizeGgData(dataArray, detection.processType);
+        console.log('✓ Datos GG normalizados:', normalized.length, 'registros');
+        setDataByGroup(detection.dataGroup, normalized);
+        console.log(`✓ Datos guardados en ${detection.dataGroup}`);
+      } else {
+        // Es archivo con vueltas (APK o EPK)
+        const validation = validateApkData(dataArray);
+        console.log('✓ Validación APK/EPK:', validation);
+        if (!validation.valid) {
           showError(validation.error || 'Datos inválidos');
           return;
         }
-        const normalized = normalizeGgData(rawData as unknown[]);
-        console.log('✓ Datos GG normalizados:', normalized.length, 'registros');
-        setGgData(normalized);
-        console.log('✓ setGgData llamado');
+        const normalized = normalizeApkData(dataArray, detection.processType);
+        console.log('✓ Datos normalizados:', normalized.length, 'registros');
+        setDataByGroup(detection.dataGroup, normalized);
+        console.log(`✓ Datos guardados en ${detection.dataGroup}`);
       }
     } catch (error) {
       showError(error instanceof Error ? error.message : 'Error al normalizar datos');
@@ -64,18 +89,26 @@ function AppContent() {
         );
       
       case 'table':
-        console.log('📊 Renderizando tabla:', { apkLength: apkData.length, ggLength: ggData.length });
+        console.log('📊 Renderizando tabla con datos:', { 
+          apk: apkData.length, 
+          apkGg: apkGgData.length,
+          epk: epkData.length,
+          epkGg: epkGgData.length
+        });
+        
+        const totalRecords = apkData.length + apkGgData.length + epkData.length + epkGgData.length;
+        
         return (
           <Box>
             <Typography variant="h5" gutterBottom>📊 Tabla de Datos</Typography>
             
-            {apkData.length === 0 && ggData.length === 0 ? (
+            {totalRecords === 0 ? (
               <Box sx={{ textAlign: 'center', py: 8 }}>
                 <Typography variant="h6" color="text.secondary" gutterBottom>
                   No hay datos cargados
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  Ve a la pestaña "Carga de Archivos" para cargar un archivo APK o GG
+                  Ve a la pestaña "Carga de Archivos" para cargar archivos APK o EPK
                 </Typography>
               </Box>
             ) : (
@@ -83,7 +116,7 @@ function AppContent() {
                 {apkData.length > 0 && (
                   <Box>
                     <Typography variant="h6" gutterBottom>
-                      Datos APK ({apkData.length} registros)
+                      APK - Aparcería Vueltas ({apkData.length} registros)
                     </Typography>
                     <DataTable
                       data={apkData}
@@ -95,17 +128,47 @@ function AppContent() {
                   </Box>
                 )}
                 
-                {ggData.length > 0 && (
+                {apkGgData.length > 0 && (
                   <Box>
                     <Typography variant="h6" gutterBottom>
-                      Datos GG ({ggData.length} registros)
+                      APK-GG - Aparcería Gastos Generales ({apkGgData.length} registros)
                     </Typography>
                     <DataTable
-                      data={ggData}
+                      data={apkGgData}
                       type="gg"
-                      onEdit={(record) => console.log('Edit GG:', record)}
-                      onDelete={(id) => console.log('Delete GG:', id)}
-                      onExport={() => console.log('Export GG')}
+                      onEdit={(record) => console.log('Edit APK-GG:', record)}
+                      onDelete={(id) => console.log('Delete APK-GG:', id)}
+                      onExport={() => console.log('Export APK-GG')}
+                    />
+                  </Box>
+                )}
+                
+                {epkData.length > 0 && (
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      EPK - Producción/Engorda Vueltas ({epkData.length} registros)
+                    </Typography>
+                    <DataTable
+                      data={epkData}
+                      type="epk"
+                      onEdit={(record) => console.log('Edit EPK:', record)}
+                      onDelete={(id) => console.log('Delete EPK:', id)}
+                      onExport={() => console.log('Export EPK')}
+                    />
+                  </Box>
+                )}
+                
+                {epkGgData.length > 0 && (
+                  <Box>
+                    <Typography variant="h6" gutterBottom>
+                      EPK-GG - Producción/Engorda Gastos Generales ({epkGgData.length} registros)
+                    </Typography>
+                    <DataTable
+                      data={epkGgData}
+                      type="gg"
+                      onEdit={(record) => console.log('Edit EPK-GG:', record)}
+                      onDelete={(id) => console.log('Delete EPK-GG:', id)}
+                      onExport={() => console.log('Export EPK-GG')}
                     />
                   </Box>
                 )}

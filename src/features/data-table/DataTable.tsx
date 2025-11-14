@@ -49,13 +49,14 @@ import {
   SwapHoriz,
 } from '@mui/icons-material';
 import { getConcepts, getProcessData, saveProcessData } from '../../services/localStorage';
-import { useAppContext } from '../../context/AppContext';
+// import { useAppContext } from '../../context/AppContext'; // TODO: Re-habilitar cuando se restaure edit functionality
 import { useNotification } from '../../hooks/useNotification';
-import type { ApkRecord, GgRecord, DataType } from '../../types';
+import type { ApkRecord, GgRecord, DataType, DataGroup } from '../../types';
 
 interface DataTableProps {
   data: ApkRecord[] | GgRecord[];
   type: DataType;
+  dataGroup?: DataGroup; // Opcional: para saber dónde guardar cambios
   onEdit?: (record: ApkRecord | GgRecord) => void;
   onDelete?: (id: number) => void;
   onExport?: () => void;
@@ -66,7 +67,7 @@ interface DataTableProps {
  * Incluye ordenamiento, filtrado, paginación y acciones
  */
 export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableProps) => {
-  const { setApkData, setGgData } = useAppContext();
+  // const { setDataByGroup } = useAppContext(); // TODO: Re-habilitar cuando se agregue dataGroup prop
   const { notification, showSuccess, showError, hideNotification } = useNotification();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -201,7 +202,8 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         saveProcessData(processData);
         
         // 4. Actualizar el contexto para reflejar el cambio
-        setApkData(updatedData);
+        // TODO: Actualizar para usar setDataByGroup con dataGroup apropiado
+        // setDataByGroup(dataGroup, updatedData);
         console.log('✅ Concepto actualizado en APK');
       } else {
         // Encontrar y actualizar el registro GG
@@ -216,7 +218,8 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         saveProcessData(processData);
         
         // 4. Actualizar el contexto para reflejar el cambio
-        setGgData(updatedData);
+        // TODO: Actualizar para usar setDataByGroup con dataGroup apropiado
+        // setDataByGroup(dataGroup, updatedData);
         console.log('✅ Concepto actualizado en GG');
       }
       
@@ -277,7 +280,8 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         
         processData.data = updatedData;
         saveProcessData(processData);
-        setApkData(updatedData);
+        // TODO: Actualizar para usar setDataByGroup
+        // setDataByGroup(dataGroup, updatedData);
         
         console.log(`✅ Cambio masivo aplicado en APK: ${affectedRecords.length} registros actualizados`);
       } else {
@@ -289,7 +293,8 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         
         processData.gg = updatedData;
         saveProcessData(processData);
-        setGgData(updatedData);
+        // TODO: Actualizar para usar setDataByGroup
+        // setDataByGroup(dataGroup, updatedData);
         
         console.log(`✅ Cambio masivo aplicado en GG: ${affectedRecords.length} registros actualizados`);
       }

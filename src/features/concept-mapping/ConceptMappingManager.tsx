@@ -42,7 +42,7 @@ export const ConceptMappingManager = () => {
   const [formAccountCode, setFormAccountCode] = useState('');
   const [formSourceText, setFormSourceText] = useState('');
   const [formTargetConcept, setFormTargetConcept] = useState('');
-  const [formDataType, setFormDataType] = useState<'apk' | 'gg' | 'both'>('both');
+  const [formDataType, setFormDataType] = useState<'apk' | 'epk' | 'gg' | 'both'>('apk');
 
   // Obtener lista de conceptos disponibles
   const availableConcepts = useMemo(() => {
@@ -356,6 +356,7 @@ export const ConceptMappingManager = () => {
               >
                 <MenuItem value="both">Ambos (APK y GG)</MenuItem>
                 <MenuItem value="apk">Solo APK</MenuItem>
+                <MenuItem value="epk">Solo EPK</MenuItem>
                 <MenuItem value="gg">Solo GG</MenuItem>
               </Select>
             </FormControl>

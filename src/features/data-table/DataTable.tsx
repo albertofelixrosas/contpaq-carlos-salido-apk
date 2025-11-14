@@ -38,6 +38,7 @@ import {
   ListItemText,
   Checkbox,
   Alert,
+  Snackbar,
 } from '@mui/material';
 import {
   ArrowUpward,
@@ -49,6 +50,7 @@ import {
 } from '@mui/icons-material';
 import { getConcepts, getProcessData, saveProcessData } from '../../services/localStorage';
 import { useAppContext } from '../../context/AppContext';
+import { useNotification } from '../../hooks/useNotification';
 import type { ApkRecord, GgRecord, DataType } from '../../types';
 
 interface DataTableProps {
@@ -65,6 +67,7 @@ interface DataTableProps {
  */
 export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableProps) => {
   const { setApkData, setGgData } = useAppContext();
+  const { notification, showSuccess, showError, hideNotification } = useNotification();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
   const [globalFilter, setGlobalFilter] = useState('');
@@ -192,7 +195,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
       handleCloseModal();
     } catch (error) {
       console.error('❌ Error al guardar concepto:', error);
-      alert('Error al guardar el concepto. Por favor intenta de nuevo.');
+      showError('Error al guardar el concepto. Por favor intenta de nuevo.');
     }
   };
 
@@ -223,7 +226,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
 
   const handleApplyMassChange = () => {
     if (sourceConceptos.length === 0 || !targetConcepto) {
-      alert('Debes seleccionar al menos un concepto de origen y un concepto destino.');
+      showError('Debes seleccionar al menos un concepto de origen y un concepto destino.');
       return;
     }
 
@@ -256,11 +259,12 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         console.log(`✅ Cambio masivo aplicado en GG: ${affectedRecords.length} registros actualizados`);
       }
       
-      alert(`Cambio masivo aplicado exitosamente a ${affectedRecords.length} registros.`);
+      const registrosText = affectedRecords.length === 1 ? 'registro' : 'registros';
+      showSuccess(`Cambio masivo aplicado exitosamente a ${affectedRecords.length} ${registrosText}.`);
       handleCloseMassChange();
     } catch (error) {
       console.error('❌ Error al aplicar cambio masivo:', error);
-      alert('Error al aplicar el cambio masivo. Por favor intenta de nuevo.');
+      showError('Error al aplicar el cambio masivo. Por favor intenta de nuevo.');
     }
   };
 
@@ -931,6 +935,23 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
           </Button>
         </DialogActions>
       </Dialog>
+
+      {/* Snackbar para notificaciones */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={hideNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={hideNotification} 
+          severity={notification.type}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

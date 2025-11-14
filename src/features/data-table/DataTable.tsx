@@ -583,11 +583,9 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
                 onClick={() => handleRowClick(row.original)}
                 sx={{
                   cursor: 'pointer',
-                  transition: 'all 0.2s ease-in-out',
+                  transition: 'background-color 0.2s ease-in-out',
                   '&:hover': {
                     backgroundColor: 'primary.50',
-                    transform: 'scale(1.01)',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   },
                 }}
               >

@@ -19,7 +19,7 @@ import {
   DialogActions,
   TableFooter,
 } from '@mui/material';
-import { Calculate, ContentCopy, Download, BarChart } from '@mui/icons-material';
+import { Calculate, ContentCopy, Download, BarChart, Category } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../../context/AppContext';
 import { getProcessData, saveProcessData } from '../../services/localStorage';
@@ -37,6 +37,7 @@ export const ExpenseProration = () => {
   const [prorrateoData, setProrrateoData] = useState<ProrrateoRecord[]>([]);
   const [showResults, setShowResults] = useState(false);
   const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
+  const [isConceptBreakdownModalOpen, setIsConceptBreakdownModalOpen] = useState(false);
 
   // Calcular total de cerdos
   const totalCerdos = useMemo(() => {
@@ -87,6 +88,46 @@ export const ExpenseProration = () => {
         registros: data.count,
       }))
       .sort((a, b) => b.total - a.total); // Ordenar por total descendente
+  }, [prorrateoData, totalProrrateo]);
+
+  // Calcular desglose por concepto
+  const conceptBreakdown = useMemo(() => {
+    if (prorrateoData.length === 0) return [];
+
+    // Estructura: Map<concepto, Map<segmento, total>>
+    const breakdown = new Map<string, Map<string, number>>();
+
+    prorrateoData.forEach(record => {
+      const concepto = record.concepto;
+      const segmento = record.vuelta;
+      const importe = record.importe;
+
+      if (!breakdown.has(concepto)) {
+        breakdown.set(concepto, new Map<string, number>());
+      }
+
+      const conceptMap = breakdown.get(concepto)!;
+      conceptMap.set(segmento, (conceptMap.get(segmento) || 0) + importe);
+    });
+
+    // Convertir a array estructurado
+    const result = Array.from(breakdown.entries()).map(([concepto, segmentMap]) => {
+      const totalConcepto = Array.from(segmentMap.values()).reduce((sum, val) => sum + val, 0);
+      const segmentos = Array.from(segmentMap.entries()).map(([seg, total]) => ({
+        segmento: seg,
+        total,
+        porcentaje: totalConcepto > 0 ? (total / totalConcepto) * 100 : 0,
+      }));
+
+      return {
+        concepto,
+        totalConcepto,
+        porcentajeTotal: totalProrrateo > 0 ? (totalConcepto / totalProrrateo) * 100 : 0,
+        segmentos: segmentos.sort((a, b) => b.total - a.total),
+      };
+    });
+
+    return result.sort((a, b) => b.totalConcepto - a.totalConcepto);
   }, [prorrateoData, totalProrrateo]);
 
   // Formatear fecha para prorrateo (último día del mes actual)
@@ -354,6 +395,15 @@ export const ExpenseProration = () => {
               >
                 Ver Desglose por Segmento
               </Button>
+              <Button
+                variant="contained"
+                color="info"
+                startIcon={<Category />}
+                onClick={() => setIsConceptBreakdownModalOpen(true)}
+                fullWidth
+              >
+                Ver Desglose por Concepto
+              </Button>
             </Stack>
 
             {/* Tabla de resultados */}
@@ -477,6 +527,145 @@ export const ExpenseProration = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setIsBreakdownModalOpen(false)} variant="contained">
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Modal de Desglose por Concepto */}
+      <Dialog
+        open={isConceptBreakdownModalOpen}
+        onClose={() => setIsConceptBreakdownModalOpen(false)}
+        maxWidth="lg"
+        fullWidth
+      >
+        <DialogTitle>
+          📋 Desglose de Prorrateo por Concepto
+        </DialogTitle>
+        <DialogContent>
+          <Box sx={{ pt: 2 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+              Distribución detallada de cada concepto entre los segmentos configurados.
+            </Typography>
+
+            {conceptBreakdown.map((item, index) => (
+              <Paper 
+                key={item.concepto} 
+                variant="outlined" 
+                sx={{ mb: 2, overflow: 'hidden' }}
+              >
+                {/* Header del concepto */}
+                <Box sx={{ 
+                  p: 2, 
+                  backgroundColor: 'info.50',
+                  borderBottom: '1px solid',
+                  borderColor: 'divider'
+                }}>
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Box>
+                      <Chip 
+                        label={item.concepto} 
+                        color="info" 
+                        size="small"
+                        sx={{ fontWeight: 600, mb: 0.5 }}
+                      />
+                      <Typography variant="caption" color="text.secondary" display="block">
+                        Concepto #{index + 1}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right' }}>
+                      <Typography variant="h6" color="primary" fontWeight={700}>
+                        ${item.totalConcepto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </Typography>
+                      <Chip
+                        label={`${item.porcentajeTotal.toFixed(2)}% del total`}
+                        size="small"
+                        color="success"
+                      />
+                    </Box>
+                  </Stack>
+                </Box>
+
+                {/* Tabla de segmentos para este concepto */}
+                <TableContainer>
+                  <Table size="small">
+                    <TableHead>
+                      <TableRow sx={{ backgroundColor: 'grey.50' }}>
+                        <TableCell sx={{ fontWeight: 600 }}>Segmento</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>Total Asignado</TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 600 }}>% del Concepto</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {item.segmentos.map((seg) => (
+                        <TableRow key={seg.segmento} hover>
+                          <TableCell>
+                            <Chip 
+                              label={seg.segmento} 
+                              size="small" 
+                              variant="outlined"
+                            />
+                          </TableCell>
+                          <TableCell align="right">
+                            <Typography variant="body2" fontWeight={500}>
+                              ${seg.total.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </Typography>
+                          </TableCell>
+                          <TableCell align="right">
+                            <Chip
+                              label={`${seg.porcentaje.toFixed(2)}%`}
+                              size="small"
+                              color="default"
+                              variant="outlined"
+                            />
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                    <TableFooter>
+                      <TableRow sx={{ backgroundColor: 'grey.100' }}>
+                        <TableCell sx={{ fontWeight: 700 }}>
+                          Subtotal
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          ${item.totalConcepto.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell align="right" sx={{ fontWeight: 700 }}>
+                          <Chip
+                            label="100.00%"
+                            size="small"
+                            color="default"
+                          />
+                        </TableCell>
+                      </TableRow>
+                    </TableFooter>
+                  </Table>
+                </TableContainer>
+              </Paper>
+            ))}
+
+            {/* Total general */}
+            <Paper variant="outlined" sx={{ p: 2, backgroundColor: 'primary.50', mt: 3 }}>
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Typography variant="h6" fontWeight={700}>
+                  TOTAL GENERAL
+                </Typography>
+                <Box sx={{ textAlign: 'right' }}>
+                  <Typography variant="h5" color="primary" fontWeight={700}>
+                    ${totalProrrateo.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  </Typography>
+                  <Chip
+                    label="100.00%"
+                    size="small"
+                    color="primary"
+                  />
+                </Box>
+              </Stack>
+            </Paper>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsConceptBreakdownModalOpen(false)} variant="contained">
             Cerrar
           </Button>
         </DialogActions>

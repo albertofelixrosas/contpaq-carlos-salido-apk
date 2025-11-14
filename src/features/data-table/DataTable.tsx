@@ -76,6 +76,10 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     pageSize: 10,
   });
 
+  // Estados para filtro de período (mes/año)
+  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedYear, setSelectedYear] = useState<string>('');
+
   // Estados para filtros personalizados
   const [proveedorFilter, setProveedorFilter] = useState('');
   const [conceptoFilter, setConceptoFilter] = useState('');
@@ -91,21 +95,45 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   const [sourceConceptos, setSourceConceptos] = useState<string[]>([]);
   const [targetConcepto, setTargetConcepto] = useState('');
 
-  // Extraer valores únicos para los selects
-  const uniqueConceptos = useMemo(() => {
-    const conceptos = new Set(data.map(record => record.concepto).filter(Boolean));
-    return Array.from(conceptos).sort();
+  // Filtrar datos por período (mes/año) - FILTRO PRINCIPAL
+  const filteredDataByPeriod = useMemo(() => {
+    if (!selectedMonth && !selectedYear) {
+      return data; // Sin filtro de período, mostrar todos
+    }
+
+    return data.filter(record => {
+      const matchesMonth = selectedMonth ? record.mes === selectedMonth : true;
+      const matchesYear = selectedYear ? record.año === selectedYear : true;
+      return matchesMonth && matchesYear;
+    });
+  }, [data, selectedMonth, selectedYear]);
+
+  // Extraer meses y años únicos disponibles en los datos
+  const availableMonths = useMemo(() => {
+    const months = new Set(data.map(record => record.mes).filter(Boolean));
+    return Array.from(months).sort();
   }, [data]);
+
+  const availableYears = useMemo(() => {
+    const years = new Set(data.map(record => record.año).filter(Boolean));
+    return Array.from(years).sort();
+  }, [data]);
+
+  // Extraer valores únicos para los selects (basado en datos filtrados por período)
+  const uniqueConceptos = useMemo(() => {
+    const conceptos = new Set(filteredDataByPeriod.map(record => record.concepto).filter(Boolean));
+    return Array.from(conceptos).sort();
+  }, [filteredDataByPeriod]);
 
   const uniqueVueltas = useMemo(() => {
     if (type === 'apk') {
-      const vueltas = new Set((data as ApkRecord[]).map(record => record.vuelta).filter(Boolean));
+      const vueltas = new Set((filteredDataByPeriod as ApkRecord[]).map(record => record.vuelta).filter(Boolean));
       return Array.from(vueltas).sort();
     } else {
-      const segmentos = new Set((data as GgRecord[]).map(record => record.segmento).filter(Boolean));
+      const segmentos = new Set((filteredDataByPeriod as GgRecord[]).map(record => record.segmento).filter(Boolean));
       return Array.from(segmentos).sort();
     }
-  }, [data, type]);
+  }, [filteredDataByPeriod, type]);
 
   // Aplicar filtros personalizados
   const applyCustomFilters = (filters: ColumnFiltersState) => {
@@ -218,11 +246,11 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     setTargetConcepto('');
   };
 
-  // Obtener registros afectados por el cambio masivo
+  // Obtener registros afectados por el cambio masivo (respetando el período seleccionado)
   const affectedRecords = useMemo(() => {
     if (sourceConceptos.length === 0) return [];
-    return data.filter(record => sourceConceptos.includes(record.concepto));
-  }, [data, sourceConceptos]);
+    return filteredDataByPeriod.filter(record => sourceConceptos.includes(record.concepto));
+  }, [filteredDataByPeriod, sourceConceptos]);
 
   const handleApplyMassChange = () => {
     if (sourceConceptos.length === 0 || !targetConcepto) {
@@ -233,9 +261,16 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     try {
       const processData = getProcessData();
       
+      // Función para verificar si un registro está en el período seleccionado
+      const isInSelectedPeriod = (record: ApkRecord | GgRecord) => {
+        const matchesMonth = selectedMonth ? record.mes === selectedMonth : true;
+        const matchesYear = selectedYear ? record.año === selectedYear : true;
+        return matchesMonth && matchesYear;
+      };
+      
       if (type === 'apk') {
         const updatedData = processData.data.map(record => 
-          sourceConceptos.includes(record.concepto)
+          sourceConceptos.includes(record.concepto) && isInSelectedPeriod(record)
             ? { ...record, concepto: targetConcepto }
             : record
         );
@@ -247,7 +282,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         console.log(`✅ Cambio masivo aplicado en APK: ${affectedRecords.length} registros actualizados`);
       } else {
         const updatedData = processData.gg.map(record => 
-          sourceConceptos.includes(record.concepto)
+          sourceConceptos.includes(record.concepto) && isInSelectedPeriod(record)
             ? { ...record, concepto: targetConcepto }
             : record
         );
@@ -405,7 +440,7 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   }, [type, onEdit, onDelete]);
 
   const table = useReactTable({
-    data,
+    data: filteredDataByPeriod,
     columns,
     state: {
       sorting,
@@ -472,11 +507,11 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
                 style: 'currency',
                 currency: 'MXN',
               }).format(
-                data.reduce((sum, record) => sum + (record.importe || 0), 0)
+                filteredDataByPeriod.reduce((sum, record) => sum + (record.importe || 0), 0)
               )}
             </Typography>
             <Typography variant="caption" color="text.secondary">
-              ({data.length} registros)
+              ({filteredDataByPeriod.length} registros)
             </Typography>
           </Box>
 
@@ -499,6 +534,91 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
               ({table.getFilteredRowModel().rows.length} registros)
             </Typography>
           </Box>
+        </Stack>
+      </Paper>
+
+      {/* Filtro de Período (Mes/Año) - FILTRO PRINCIPAL */}
+      <Paper sx={{ padding: 2, mb: 2, backgroundColor: 'warning.50', border: '2px solid', borderColor: 'warning.main' }}>
+        <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+          <FilterList color="warning" />
+          <Typography variant="subtitle1" fontWeight="bold" color="warning.dark">
+            Filtro de Período (Mes/Año)
+          </Typography>
+          <Chip 
+            label="Filtro Principal" 
+            size="small" 
+            color="warning" 
+            sx={{ fontWeight: 'bold' }}
+          />
+        </Stack>
+        
+        <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+          Este filtro se aplica primero. Los cambios masivos solo afectarán registros dentro del período seleccionado.
+        </Typography>
+
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+          {/* Selector de Año */}
+          <FormControl fullWidth size="small">
+            <InputLabel>Año</InputLabel>
+            <Select
+              value={selectedYear}
+              onChange={(e) => setSelectedYear(e.target.value)}
+              label="Año"
+            >
+              <MenuItem value="">
+                <em>Todos los años</em>
+              </MenuItem>
+              {availableYears.map(year => (
+                <MenuItem key={year} value={year}>
+                  {year}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Selector de Mes */}
+          <FormControl fullWidth size="small">
+            <InputLabel>Mes</InputLabel>
+            <Select
+              value={selectedMonth}
+              onChange={(e) => setSelectedMonth(e.target.value)}
+              label="Mes"
+            >
+              <MenuItem value="">
+                <em>Todos los meses</em>
+              </MenuItem>
+              {availableMonths.map(month => (
+                <MenuItem key={month} value={month}>
+                  {month}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+
+          {/* Botón para limpiar filtro de período */}
+          {(selectedMonth || selectedYear) && (
+            <Button 
+              variant="outlined" 
+              color="warning"
+              onClick={() => {
+                setSelectedMonth('');
+                setSelectedYear('');
+              }}
+              sx={{ minWidth: '120px', whiteSpace: 'nowrap' }}
+            >
+              Limpiar Período
+            </Button>
+          )}
+
+          {/* Indicador de registros filtrados */}
+          {(selectedMonth || selectedYear) && (
+            <Chip
+              label={`${filteredDataByPeriod.length} de ${data.length} registros`}
+              color="warning"
+              variant="outlined"
+              size="small"
+            />
+          )}
         </Stack>
       </Paper>
 
@@ -837,9 +957,19 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         </DialogTitle>
         <DialogContent>
           <Box sx={{ pt: 2 }}>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
               Selecciona los conceptos que deseas cambiar y el concepto destino al que serán reasignados.
             </Typography>
+
+            {/* Indicador de período activo */}
+            {(selectedMonth || selectedYear) && (
+              <Alert severity="warning" sx={{ mb: 2 }}>
+                <strong>Filtro de período activo:</strong> Los cambios solo se aplicarán a registros de{' '}
+                {selectedMonth && <strong>{selectedMonth}</strong>}
+                {selectedMonth && selectedYear && ' de '}
+                {selectedYear && <strong>{selectedYear}</strong>}
+              </Alert>
+            )}
 
             {/* Formulario */}
             <Stack spacing={3}>

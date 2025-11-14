@@ -460,14 +460,40 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   });
 
   const handleCopyToClipboard = () => {
-    const rows = table.getFilteredRowModel().rows.map(row => 
-      columns
-        .filter(col => col.id !== 'actions' && col.id !== 'id')
-        .map(col => {
-          const cell = row.getAllCells().find(c => c.column.id === col.id);
-          return cell?.getValue() ?? '';
-        })
-    );
+    const rows = table.getFilteredRowModel().rows.map(row => {
+      const record = row.original as ApkRecord | GgRecord;
+      
+      // Crear array con todos los campos excepto id
+      if (type === 'apk') {
+        const apkRecord = record as ApkRecord;
+        return [
+          apkRecord.fecha,
+          apkRecord.egresos,
+          apkRecord.folio,
+          apkRecord.proveedor,
+          apkRecord.factura,
+          apkRecord.importe,
+          apkRecord.concepto,
+          apkRecord.vuelta,
+          apkRecord.mes,
+          apkRecord.año,
+        ];
+      } else {
+        const ggRecord = record as GgRecord;
+        return [
+          ggRecord.fecha,
+          ggRecord.egresos,
+          ggRecord.folio,
+          ggRecord.proveedor,
+          ggRecord.factura,
+          ggRecord.importe,
+          ggRecord.concepto,
+          ggRecord.segmento,
+          ggRecord.mes,
+          ggRecord.año,
+        ];
+      }
+    });
     
     const tsvContent = rows.map(row => row.join('\t')).join('\n');
 

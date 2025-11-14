@@ -58,26 +58,6 @@ export const ConceptsManager = ({
     setShowForm(false);
   };
 
-  // Conceptos predefinidos por defecto
-  const defaultConcepts = [
-    'HONORARIOS',
-    'RENTA',
-    'LUZ',
-    'AGUA',
-    'TELEFONO',
-    'INTERNET',
-    'PAPELERIA',
-    'LIMPIEZA',
-    'MANTENIMIENTO',
-    'COMBUSTIBLE',
-    'VIATICOS',
-    'MENSAJERIA',
-    'SEGURIDAD',
-    'PUBLICIDAD',
-    'CAPACITACION',
-    'OTROS',
-  ];
-
   return (
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
@@ -85,7 +65,7 @@ export const ConceptsManager = ({
           🏷️ Gestión de Conceptos
         </Typography>
         <Typography variant="body2" color="text.secondary" paragraph>
-          Administra los conceptos utilizados para clasificar gastos. Puedes usar los predefinidos o crear personalizados.
+          Administra los conceptos utilizados para clasificar gastos.
         </Typography>
 
         {/* Estadísticas */}
@@ -101,34 +81,6 @@ export const ConceptsManager = ({
             variant="outlined"
           />
         </Stack>
-
-        {/* Conceptos predefinidos */}
-        <Box sx={{ mb: 3 }}>
-          <Typography variant="h6" gutterBottom>
-            Conceptos Predefinidos
-          </Typography>
-          <Typography variant="caption" color="text.secondary" paragraph>
-            Estos son los conceptos recomendados para clasificación de gastos
-          </Typography>
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {defaultConcepts.map((concept) => {
-              const isAdded = concepts.some((c) => c.text === concept);
-              return (
-                <Chip
-                  key={concept}
-                  label={concept}
-                  color={isAdded ? 'success' : 'default'}
-                  variant={isAdded ? 'filled' : 'outlined'}
-                  icon={isAdded ? <Label /> : undefined}
-                  onClick={() => !isAdded && onAdd(concept)}
-                  sx={{ cursor: isAdded ? 'default' : 'pointer' }}
-                />
-              );
-            })}
-          </Box>
-        </Box>
-
-        <Divider sx={{ my: 3 }} />
 
         {/* Conceptos personalizados */}
         <Box>
@@ -188,7 +140,7 @@ export const ConceptsManager = ({
           {/* Lista de conceptos */}
           {concepts.length === 0 ? (
             <Alert severity="info">
-              No tienes conceptos guardados. Haz clic en los conceptos predefinidos o agrega uno personalizado.
+              No tienes conceptos guardados. Agrega uno personalizado o haz clic en los conceptos detectados en tus archivos.
             </Alert>
           ) : (
             <Paper variant="outlined">

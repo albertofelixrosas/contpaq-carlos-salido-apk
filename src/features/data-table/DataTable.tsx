@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,7 +21,6 @@ import {
   TableRow,
   TablePagination,
   TextField,
-  IconButton,
   Chip,
   Typography,
   Button,
@@ -30,17 +29,20 @@ import {
   MenuItem,
   FormControl,
   InputLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Divider,
 } from '@mui/material';
 import {
   ArrowUpward,
   ArrowDownward,
-  Edit,
-  Delete,
   ContentCopy,
   Download,
   FilterList,
 } from '@mui/icons-material';
-import { useState } from 'react';
+import { getConcepts } from '../../services/localStorage';
 import type { ApkRecord, GgRecord, DataType } from '../../types';
 
 interface DataTableProps {
@@ -68,6 +70,11 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   const [proveedorFilter, setProveedorFilter] = useState('');
   const [conceptoFilter, setConceptoFilter] = useState('');
   const [vueltaFilter, setVueltaFilter] = useState('');
+
+  // Estados para el modal de edición
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedRecord, setSelectedRecord] = useState<ApkRecord | GgRecord | null>(null);
+  const [selectedConcepto, setSelectedConcepto] = useState('');
 
   // Extraer valores únicos para los selects
   const uniqueConceptos = useMemo(() => {
@@ -114,6 +121,41 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     setVueltaFilter('');
     setColumnFilters([]);
   };
+
+  // Funciones para manejar el modal de edición
+  const handleRowClick = (record: ApkRecord | GgRecord) => {
+    setSelectedRecord(record);
+    setSelectedConcepto(record.concepto);
+    setIsEditModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsEditModalOpen(false);
+    setSelectedRecord(null);
+    setSelectedConcepto('');
+  };
+
+  const handleSaveConcepto = () => {
+    if (!selectedRecord) return;
+
+    // Aquí se implementará la lógica para actualizar el concepto en localStorage
+    console.log('Guardando concepto:', selectedConcepto, 'para registro:', selectedRecord);
+    
+    // TODO: Implementar actualización en localStorage
+    // 1. Obtener datos actuales
+    // 2. Encontrar el registro por ID
+    // 3. Actualizar el concepto
+    // 4. Guardar de vuelta en localStorage
+    // 5. Actualizar el contexto
+    
+    handleCloseModal();
+  };
+
+  // Obtener conceptos predefinidos
+  const availableConcepts = useMemo(() => {
+    const concepts = getConcepts();
+    return concepts.map(c => c.text);
+  }, []);
 
   // Definir columnas según el tipo de datos
   const columns = useMemo<ColumnDef<ApkRecord | GgRecord>[]>(() => {
@@ -181,34 +223,6 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
           header: 'Año',
           size: 80,
         },
-        {
-          id: 'actions',
-          header: 'Acciones',
-          size: 120,
-          cell: (info) => (
-            <Stack direction="row" spacing={0.5}>
-              {onEdit && (
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(info.row.original)}
-                  title="Editar"
-                >
-                  <Edit fontSize="small" />
-                </IconButton>
-              )}
-              {onDelete && (
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => onDelete(info.row.original.id)}
-                  title="Eliminar"
-                >
-                  <Delete fontSize="small" />
-                </IconButton>
-              )}
-            </Stack>
-          ),
-        },
       ];
     } else {
       // Columnas para GG
@@ -274,34 +288,6 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
           accessorKey: 'año',
           header: 'Año',
           size: 80,
-        },
-        {
-          id: 'actions',
-          header: 'Acciones',
-          size: 120,
-          cell: (info) => (
-            <Stack direction="row" spacing={0.5}>
-              {onEdit && (
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(info.row.original)}
-                  title="Editar"
-                >
-                  <Edit fontSize="small" />
-                </IconButton>
-              )}
-              {onDelete && (
-                <IconButton
-                  size="small"
-                  color="error"
-                  onClick={() => onDelete(info.row.original.id)}
-                  title="Eliminar"
-                >
-                  <Delete fontSize="small" />
-                </IconButton>
-              )}
-            </Stack>
-          ),
         },
       ];
     }
@@ -559,9 +545,14 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
               <TableRow
                 key={row.id}
                 hover
+                onClick={() => handleRowClick(row.original)}
                 sx={{
+                  cursor: 'pointer',
+                  transition: 'all 0.2s ease-in-out',
                   '&:hover': {
-                    backgroundColor: 'action.hover',
+                    backgroundColor: 'primary.50',
+                    transform: 'scale(1.01)',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
                   },
                 }}
               >
@@ -588,6 +579,132 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         labelRowsPerPage="Filas por página:"
         labelDisplayedRows={({ from, to, count }) => `${from}-${to} de ${count}`}
       />
+
+      {/* Modal de edición */}
+      <Dialog 
+        open={isEditModalOpen} 
+        onClose={handleCloseModal}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          Editar Registro
+        </DialogTitle>
+        <DialogContent>
+          {selectedRecord && (
+            <Box sx={{ pt: 2 }}>
+              {/* Información del registro */}
+              <Typography variant="h6" gutterBottom>
+                Información del Registro
+              </Typography>
+              <Divider sx={{ mb: 2 }} />
+              
+              <Stack spacing={2} sx={{ mb: 3 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      ID
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.id}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Fecha
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.fecha}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Folio
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.folio}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Factura
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.factura}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Proveedor
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.proveedor}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Importe
+                    </Typography>
+                    <Typography variant="body1">
+                      ${selectedRecord.importe.toLocaleString('es-MX', { minimumFractionDigits: 2 })}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      {type === 'apk' ? 'Vuelta' : 'Segmento'}
+                    </Typography>
+                    <Typography variant="body1">
+                      {type === 'apk' ? (selectedRecord as ApkRecord).vuelta : (selectedRecord as GgRecord).segmento}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" color="text.secondary">
+                      Concepto Actual
+                    </Typography>
+                    <Typography variant="body1">
+                      {selectedRecord.concepto}
+                    </Typography>
+                  </Box>
+                </Box>
+              </Stack>
+
+              <Divider sx={{ mb: 3 }} />
+
+              {/* Formulario de edición */}
+              <Typography variant="h6" gutterBottom>
+                Editar Concepto
+              </Typography>
+              
+              <FormControl fullWidth sx={{ mt: 2 }}>
+                <InputLabel>Concepto</InputLabel>
+                <Select
+                  value={selectedConcepto}
+                  label="Concepto"
+                  onChange={(e) => setSelectedConcepto(e.target.value)}
+                >
+                  {availableConcepts.map((concepto) => (
+                    <MenuItem key={concepto} value={concepto}>
+                      {concepto}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseModal}>
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleSaveConcepto} 
+            variant="contained"
+            disabled={!selectedConcepto}
+          >
+            Guardar
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

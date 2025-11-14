@@ -48,15 +48,15 @@ import {
   FilterList,
   SwapHoriz,
 } from '@mui/icons-material';
-import { getConcepts, getProcessData, saveProcessData } from '../../services/localStorage';
-// import { useAppContext } from '../../context/AppContext'; // TODO: Re-habilitar cuando se restaure edit functionality
+import { getConcepts } from '../../services/localStorage';
+import { useAppContext } from '../../context/AppContext';
 import { useNotification } from '../../hooks/useNotification';
 import type { ApkRecord, GgRecord, DataType, DataGroup } from '../../types';
 
 interface DataTableProps {
   data: ApkRecord[] | GgRecord[];
   type: DataType;
-  dataGroup?: DataGroup; // Opcional: para saber dónde guardar cambios
+  dataGroup: DataGroup; // Requerido: para saber dónde guardar cambios
   onEdit?: (record: ApkRecord | GgRecord) => void;
   onDelete?: (id: number) => void;
   onExport?: () => void;
@@ -66,8 +66,8 @@ interface DataTableProps {
  * Tabla de datos con TanStack Table
  * Incluye ordenamiento, filtrado, paginación y acciones
  */
-export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableProps) => {
-  // const { setDataByGroup } = useAppContext(); // TODO: Re-habilitar cuando se agregue dataGroup prop
+export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }: DataTableProps) => {
+  const { setDataByGroup } = useAppContext();
   const { notification, showSuccess, showError, hideNotification } = useNotification();
   const [sorting, setSorting] = useState<SortingState>([]);
   const [columnFilters, setColumnFilters] = useState<ColumnFiltersState>([]);
@@ -191,44 +191,21 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     console.log('💾 Guardando concepto:', selectedConcepto, 'para registro ID:', selectedRecord.id);
     
     try {
-      // 1. Obtener datos actuales del proceso
-      const processData = getProcessData();
+      // Determinar si es GG o vueltas
+      const isGG = type === 'gg';
       
-      // 2. Actualizar el registro según el tipo
-      if (type === 'apk') {
-        // Encontrar y actualizar el registro APK
-        const updatedData = processData.data.map(record => 
-          record.id === selectedRecord.id 
-            ? { ...record, concepto: selectedConcepto }
-            : record
-        );
-        
-        // 3. Guardar en localStorage
-        processData.data = updatedData;
-        saveProcessData(processData);
-        
-        // 4. Actualizar el contexto para reflejar el cambio
-        // TODO: Actualizar para usar setDataByGroup con dataGroup apropiado
-        // setDataByGroup(dataGroup, updatedData);
-        console.log('✅ Concepto actualizado en APK');
-      } else {
-        // Encontrar y actualizar el registro GG
-        const updatedData = processData.gg.map(record => 
-          record.id === selectedRecord.id 
-            ? { ...record, concepto: selectedConcepto }
-            : record
-        );
-        
-        // 3. Guardar en localStorage
-        processData.gg = updatedData;
-        saveProcessData(processData);
-        
-        // 4. Actualizar el contexto para reflejar el cambio
-        // TODO: Actualizar para usar setDataByGroup con dataGroup apropiado
-        // setDataByGroup(dataGroup, updatedData);
-        console.log('✅ Concepto actualizado en GG');
-      }
+      // Actualizar el registro en el array
+      const updatedData = (data as any[]).map(record => 
+        record.id === selectedRecord.id 
+          ? { ...record, concepto: selectedConcepto }
+          : record
+      );
       
+      // Guardar usando el contexto (esto actualizará localStorage y el estado)
+      setDataByGroup(dataGroup, updatedData, isGG);
+      
+      console.log(`✅ Concepto actualizado en ${dataGroup.toUpperCase()} ${isGG ? '(GG)' : '(Vueltas)'}`);
+      showSuccess('Concepto actualizado exitosamente');
       handleCloseModal();
     } catch (error) {
       console.error('❌ Error al guardar concepto:', error);
@@ -268,8 +245,6 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
     }
 
     try {
-      const processData = getProcessData();
-      
       // Función para verificar si un registro está en el período seleccionado
       const isInSelectedPeriod = (record: ApkRecord | GgRecord) => {
         const matchesMonth = selectedMonth ? record.mes === selectedMonth : true;
@@ -277,33 +252,20 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
         return matchesMonth && matchesYear;
       };
       
-      if (type === 'apk') {
-        const updatedData = processData.data.map(record => 
-          sourceConceptos.includes(record.concepto) && isInSelectedPeriod(record)
-            ? { ...record, concepto: targetConcepto }
-            : record
-        );
-        
-        processData.data = updatedData;
-        saveProcessData(processData);
-        // TODO: Actualizar para usar setDataByGroup
-        // setDataByGroup(dataGroup, updatedData);
-        
-        console.log(`✅ Cambio masivo aplicado en APK: ${affectedRecords.length} registros actualizados`);
-      } else {
-        const updatedData = processData.gg.map(record => 
-          sourceConceptos.includes(record.concepto) && isInSelectedPeriod(record)
-            ? { ...record, concepto: targetConcepto }
-            : record
-        );
-        
-        processData.gg = updatedData;
-        saveProcessData(processData);
-        // TODO: Actualizar para usar setDataByGroup
-        // setDataByGroup(dataGroup, updatedData);
-        
-        console.log(`✅ Cambio masivo aplicado en GG: ${affectedRecords.length} registros actualizados`);
-      }
+      // Determinar si es GG o vueltas
+      const isGG = type === 'gg';
+      
+      // Actualizar todos los registros que coincidan
+      const updatedData = (data as any[]).map(record => 
+        sourceConceptos.includes(record.concepto) && isInSelectedPeriod(record)
+          ? { ...record, concepto: targetConcepto }
+          : record
+      );
+      
+      // Guardar usando el contexto
+      setDataByGroup(dataGroup, updatedData, isGG);
+      
+      console.log(`✅ Cambio masivo aplicado en ${dataGroup.toUpperCase()} ${isGG ? '(GG)' : '(Vueltas)'}: ${affectedRecords.length} registros actualizados`);
       
       const registrosText = affectedRecords.length === 1 ? 'registro' : 'registros';
       showSuccess(`Cambio masivo aplicado exitosamente a ${affectedRecords.length} ${registrosText}.`);

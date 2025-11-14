@@ -142,6 +142,7 @@ function AppContent() {
                           <DataTable
                             data={apkData}
                             type="apk"
+                            dataGroup="apk"
                             onEdit={(record) => console.log('Edit APK:', record)}
                             onDelete={(id) => console.log('Delete APK:', id)}
                             onExport={() => console.log('Export APK')}
@@ -157,6 +158,7 @@ function AppContent() {
                           <DataTable
                             data={apkGgData}
                             type="gg"
+                            dataGroup="apk"
                             onEdit={(record) => console.log('Edit APK-GG:', record)}
                             onDelete={(id) => console.log('Delete APK-GG:', id)}
                             onExport={() => console.log('Export APK-GG')}
@@ -182,6 +184,7 @@ function AppContent() {
                           <DataTable
                             data={epkData}
                             type="epk"
+                            dataGroup="epk"
                             onEdit={(record) => console.log('Edit EPK:', record)}
                             onDelete={(id) => console.log('Delete EPK:', id)}
                             onExport={() => console.log('Export EPK')}
@@ -197,6 +200,7 @@ function AppContent() {
                           <DataTable
                             data={epkGgData}
                             type="gg"
+                            dataGroup="epk"
                             onEdit={(record) => console.log('Edit EPK-GG:', record)}
                             onDelete={(id) => console.log('Delete EPK-GG:', id)}
                             onExport={() => console.log('Export EPK-GG')}

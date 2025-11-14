@@ -146,14 +146,10 @@ export const ExpenseProration = () => {
     }
 
     try {
-      // Crear encabezados
-      const headers = ['ID', 'Fecha', 'Egresos', 'Folio', 'Proveedor', 'Factura', 'Importe', 'Concepto', 'Vuelta', 'Mes', 'Año'];
-      let tableText = headers.join('\t') + '\n';
-
-      // Agregar filas
+      // Agregar filas (sin cabeceras ni ID)
+      let tableText = '';
       prorrateoData.forEach(record => {
         const row = [
-          record.id,
           record.fecha,
           record.egresos,
           record.folio,

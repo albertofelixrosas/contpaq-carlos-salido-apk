@@ -460,20 +460,16 @@ export const DataTable = ({ data, type, onEdit, onDelete, onExport }: DataTableP
   });
 
   const handleCopyToClipboard = () => {
-    const headers = columns.filter(col => col.id !== 'actions').map(col => col.header);
     const rows = table.getFilteredRowModel().rows.map(row => 
       columns
-        .filter(col => col.id !== 'actions')
+        .filter(col => col.id !== 'actions' && col.id !== 'id')
         .map(col => {
           const cell = row.getAllCells().find(c => c.column.id === col.id);
           return cell?.getValue() ?? '';
         })
     );
     
-    const tsvContent = [
-      headers.join('\t'),
-      ...rows.map(row => row.join('\t'))
-    ].join('\n');
+    const tsvContent = rows.map(row => row.join('\t')).join('\n');
 
     navigator.clipboard.writeText(tsvContent)
       .then(() => showSuccess('Datos copiados al portapapeles exitosamente'))

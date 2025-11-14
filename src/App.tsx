@@ -1,5 +1,5 @@
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, Typography } from '@mui/material';
+import { CssBaseline, Box, Typography, Tabs, Tab } from '@mui/material';
 import { theme } from './theme/theme';
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
 import { AppLayout } from './components/Layout/AppLayout';
@@ -15,19 +15,25 @@ import { useUniqueConceptsFromData } from './features/concepts/useUniqueConcepts
 import { normalizeApkData, normalizeGgData, validateApkData, validateGgData } from './features/file-upload/fileParser';
 import { useNotification } from './hooks/useNotification';
 import type { FileDetectionResult } from './types';
+import { useState } from 'react';
 
 function AppContent() {
   const { 
     setDataByGroup, 
     apkData, 
+    apkGgData,
     ggData, 
-    epkData, 
+    epkData,
+    epkGgData, 
     concepts, 
     setConcepts, 
     segments, 
     setSegments 
   } = useAppContext();
   const { showSuccess, showError } = useNotification();
+  
+  // Estado para tabs de la sección de Tabla
+  const [dataTableTab, setDataTableTab] = useState<'apk' | 'epk'>('apk');
   
   // Combinar todos los datos para conceptos únicos
   const allData = [...apkData, ...epkData];
@@ -89,12 +95,13 @@ function AppContent() {
       
       case 'table':
         console.log('📊 Renderizando tabla con datos:', { 
-          apk: apkData.length, 
-          gg: ggData.length,
-          epk: epkData.length
+          apk: apkData.length,
+          apkGg: apkGgData.length,
+          epk: epkData.length,
+          epkGg: epkGgData.length
         });
         
-        const totalRecords = apkData.length + ggData.length + epkData.length;
+        const totalRecords = apkData.length + apkGgData.length + epkData.length + epkGgData.length;
         
         return (
           <Box>
@@ -110,51 +117,103 @@ function AppContent() {
                 </Typography>
               </Box>
             ) : (
-              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
-                {apkData.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      APK - Aparcería Vueltas ({apkData.length} registros)
-                    </Typography>
-                    <DataTable
-                      data={apkData}
-                      type="apk"
-                      onEdit={(record) => console.log('Edit APK:', record)}
-                      onDelete={(id) => console.log('Delete APK:', id)}
-                      onExport={() => console.log('Export APK')}
-                    />
-                  </Box>
-                )}
-                
-                {epkData.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      EPK - Producción/Engorda Vueltas ({epkData.length} registros)
-                    </Typography>
-                    <DataTable
-                      data={epkData}
-                      type="epk"
-                      onEdit={(record) => console.log('Edit EPK:', record)}
-                      onDelete={(id) => console.log('Delete EPK:', id)}
-                      onExport={() => console.log('Export EPK')}
-                    />
-                  </Box>
-                )}
-                
-                {ggData.length > 0 && (
-                  <Box>
-                    <Typography variant="h6" gutterBottom>
-                      Gastos Generales (APK + EPK) ({ggData.length} registros)
-                    </Typography>
-                    <DataTable
-                      data={ggData}
-                      type="gg"
-                      onEdit={(record) => console.log('Edit GG:', record)}
-                      onDelete={(id) => console.log('Delete GG:', id)}
-                      onExport={() => console.log('Export GG')}
-                    />
-                  </Box>
-                )}
+              <Box>
+                {/* Tabs para cambiar entre APK y EPK */}
+                <Tabs value={dataTableTab} onChange={(_, value) => setDataTableTab(value)} sx={{ mb: 3 }}>
+                  <Tab 
+                    label={`APK - Aparcería (${apkData.length} vueltas, ${apkGgData.length} GG)`} 
+                    value="apk" 
+                  />
+                  <Tab 
+                    label={`EPK - Producción (${epkData.length} vueltas, ${epkGgData.length} GG)`} 
+                    value="epk" 
+                  />
+                </Tabs>
+
+                {/* Contenido según tab activo */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+                  {dataTableTab === 'apk' ? (
+                    <>
+                      {apkData.length > 0 && (
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            APK - Vueltas ({apkData.length} registros)
+                          </Typography>
+                          <DataTable
+                            data={apkData}
+                            type="apk"
+                            onEdit={(record) => console.log('Edit APK:', record)}
+                            onDelete={(id) => console.log('Delete APK:', id)}
+                            onExport={() => console.log('Export APK')}
+                          />
+                        </Box>
+                      )}
+                      
+                      {apkGgData.length > 0 && (
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            APK - Gastos Generales ({apkGgData.length} registros)
+                          </Typography>
+                          <DataTable
+                            data={apkGgData}
+                            type="gg"
+                            onEdit={(record) => console.log('Edit APK-GG:', record)}
+                            onDelete={(id) => console.log('Delete APK-GG:', id)}
+                            onExport={() => console.log('Export APK-GG')}
+                          />
+                        </Box>
+                      )}
+
+                      {apkData.length === 0 && apkGgData.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            No hay datos de APK cargados
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      {epkData.length > 0 && (
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            EPK - Vueltas ({epkData.length} registros)
+                          </Typography>
+                          <DataTable
+                            data={epkData}
+                            type="epk"
+                            onEdit={(record) => console.log('Edit EPK:', record)}
+                            onDelete={(id) => console.log('Delete EPK:', id)}
+                            onExport={() => console.log('Export EPK')}
+                          />
+                        </Box>
+                      )}
+                      
+                      {epkGgData.length > 0 && (
+                        <Box>
+                          <Typography variant="h6" gutterBottom>
+                            EPK - Gastos Generales ({epkGgData.length} registros)
+                          </Typography>
+                          <DataTable
+                            data={epkGgData}
+                            type="gg"
+                            onEdit={(record) => console.log('Edit EPK-GG:', record)}
+                            onDelete={(id) => console.log('Delete EPK-GG:', id)}
+                            onExport={() => console.log('Export EPK-GG')}
+                          />
+                        </Box>
+                      )}
+
+                      {epkData.length === 0 && epkGgData.length === 0 && (
+                        <Box sx={{ textAlign: 'center', py: 4 }}>
+                          <Typography variant="body1" color="text.secondary">
+                            No hay datos de EPK cargados
+                          </Typography>
+                        </Box>
+                      )}
+                    </>
+                  )}
+                </Box>
               </Box>
             )}
           </Box>

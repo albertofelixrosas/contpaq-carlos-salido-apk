@@ -19,10 +19,12 @@ import {
 } from '../services/localStorage';
 
 interface AppContextType {
-  // Data - 2 grupos principales
+  // Data - 2 grupos principales con GG separados
   apkData: ApkRecord[];        // Aparcería - Vueltas
-  ggData: GgRecord[];          // Gastos Generales (combinados de APK y EPK)
+  apkGgData: GgRecord[];       // Aparcería - Gastos Generales
   epkData: ApkRecord[];        // Producción/Engorda - Vueltas
+  epkGgData: GgRecord[];       // Producción/Engorda - Gastos Generales
+  ggData: GgRecord[];          // Todos los GG combinados (para compatibilidad)
   concepts: Concept[];
   segments: Segment[];
   
@@ -42,9 +44,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   // Inicializar los 2 grupos desde localStorage
   const [apkData, setApkData] = useState<ApkRecord[]>(() => getDataByGroup('apk').data);
+  const [apkGgData, setApkGgData] = useState<GgRecord[]>(() => getDataByGroup('apk').gg);
   const [epkData, setEpkData] = useState<ApkRecord[]>(() => getDataByGroup('epk').data);
+  const [epkGgData, setEpkGgData] = useState<GgRecord[]>(() => getDataByGroup('epk').gg);
   const [ggData, setGgData] = useState<GgRecord[]>(() => {
-    // Combinar GG de ambos grupos
+    // Combinar GG de ambos grupos para compatibilidad
     const apkGg = getDataByGroup('apk').gg;
     const epkGg = getDataByGroup('epk').gg;
     return [...apkGg, ...epkGg];
@@ -86,17 +90,17 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     // Actualizar estado correspondiente
     if (group === 'apk') {
       if (isGG) {
-        // Actualizar solo GG de APK, mantener EPK
-        const epkGg = getDataByGroup('epk').gg;
-        setGgData([...data as GgRecord[], ...epkGg]);
+        setApkGgData(data as GgRecord[]);
+        // Actualizar ggData combinado
+        setGgData([...data as GgRecord[], ...epkGgData]);
       } else {
         setApkData(data as ApkRecord[]);
       }
     } else if (group === 'epk') {
       if (isGG) {
-        // Actualizar solo GG de EPK, mantener APK
-        const apkGg = getDataByGroup('apk').gg;
-        setGgData([...apkGg, ...data as GgRecord[]]);
+        setEpkGgData(data as GgRecord[]);
+        // Actualizar ggData combinado
+        setGgData([...apkGgData, ...data as GgRecord[]]);
       } else {
         setEpkData(data as ApkRecord[]);
       }
@@ -143,6 +147,8 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setEpkData(getDataByGroup('epk').data);
     const apkGg = getDataByGroup('apk').gg;
     const epkGg = getDataByGroup('epk').gg;
+    setApkGgData(apkGg);
+    setEpkGgData(epkGg);
     setGgData([...apkGg, ...epkGg]);
     setConceptsState(getConcepts());
     setSegmentsState(getSegments());
@@ -150,7 +156,9 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
 
   const clearData = useCallback(() => {
     setApkData([]);
+    setApkGgData([]);
     setEpkData([]);
+    setEpkGgData([]);
     setGgData([]);
     setConceptsState([]);
     setSegmentsState([]);
@@ -163,12 +171,14 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     
     if (group === 'apk') {
       setApkData([]);
-      // Recargar GG para mantener solo EPK
+      setApkGgData([]);
+      // Recargar GG combinado
       const epkGg = getDataByGroup('epk').gg;
       setGgData(epkGg);
     } else if (group === 'epk') {
       setEpkData([]);
-      // Recargar GG para mantener solo APK
+      setEpkGgData([]);
+      // Recargar GG combinado
       const apkGg = getDataByGroup('apk').gg;
       setGgData(apkGg);
     }
@@ -178,8 +188,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     <AppContext.Provider
       value={{
         apkData,
-        ggData,
+        apkGgData,
         epkData,
+        epkGgData,
+        ggData,
         concepts,
         segments,
         setDataByGroup,

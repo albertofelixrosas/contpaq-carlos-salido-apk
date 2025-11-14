@@ -18,38 +18,70 @@ import {
   DialogContent,
   DialogActions,
   TableFooter,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import { Calculate, ContentCopy, Download, BarChart, Category } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../../context/AppContext';
 import { getProcessData, saveProcessData } from '../../services/localStorage';
 import { useNotification } from '../../hooks/useNotification';
-import type { ProrrateoRecord } from '../../types';
+import type { ProrrateoRecord, GgRecord } from '../../types';
 import { Snackbar } from '@mui/material';
 
 /**
  * Componente de Prorrateo de Gastos
  * Distribuye los gastos de GG entre segmentos según su porcentaje
+ * Muestra 2 secciones: APK y EPK por separado
  */
 export const ExpenseProration = () => {
-  const { ggData, segments } = useAppContext();
+  const { apkGgData, epkGgData, segments } = useAppContext();
   
   const { showSuccess, showError, showWarning, notification, hideNotification } = useNotification();
-  const [prorrateoData, setProrrateoData] = useState<ProrrateoRecord[]>([]);
-  const [showResults, setShowResults] = useState(false);
+  
+  // Estados para cada sección
+  const [apkProrrateoData, setApkProrrateoData] = useState<ProrrateoRecord[]>([]);
+  const [epkProrrateoData, setEpkProrrateoData] = useState<ProrrateoRecord[]>([]);
+  const [showApkResults, setShowApkResults] = useState(false);
+  const [showEpkResults, setShowEpkResults] = useState(false);
+  
+  // Modales
   const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
   const [isConceptBreakdownModalOpen, setIsConceptBreakdownModalOpen] = useState(false);
+  const [activeSection, setActiveSection] = useState<'apk' | 'epk'>('apk');
 
-  // Calcular total de cerdos
-  const totalCerdos = useMemo(() => {
-    return segments.reduce((sum, segment) => sum + segment.count, 0);
+  // Filtrar segmentos por tipo (APK o EPK) - EXCLUIR GG
+  const apkSegments = useMemo(() => {
+    return segments.filter(seg => {
+      const segUpper = seg.segment.toUpperCase();
+      return segUpper.includes('APK') && !segUpper.includes('GG');
+    });
   }, [segments]);
+
+  const epkSegments = useMemo(() => {
+    return segments.filter(seg => {
+      const segUpper = seg.segment.toUpperCase();
+      return segUpper.includes('EPK') && !segUpper.includes('GG');
+    });
+  }, [segments]);
+
+  // Obtener datos y segmentos según sección activa
+  const getActiveGgData = () => activeSection === 'apk' ? apkGgData : epkGgData;
+  const getActiveProrrateoData = () => activeSection === 'apk' ? apkProrrateoData : epkProrrateoData;
+  const ggData = getActiveGgData();
+  const prorrateoData = getActiveProrrateoData();
+
+  // Calcular total de cerdos (según sección activa)
+  const totalCerdos = useMemo(() => {
+    const segs = activeSection === 'apk' ? apkSegments : epkSegments;
+    return segs.reduce((sum, segment) => sum + segment.count, 0);
+  }, [activeSection, apkSegments, epkSegments]);
 
   // Calcular totales por concepto
   const conceptTotals = useMemo(() => {
     const totals = new Map<string, number>();
     
-    ggData.forEach(record => {
+    ggData.forEach((record: GgRecord) => {
       const concepto = record.concepto;
       const importe = record.importe || 0;
 
@@ -153,7 +185,8 @@ export const ExpenseProration = () => {
   // Generar prorrateo
   const handleGenerateProration = () => {
     try {
-      if (ggData.length === 0 || segments.length === 0) {
+      const activeSegs = activeSection === 'apk' ? apkSegments : epkSegments;
+      if (ggData.length === 0 || activeSegs.length === 0) {
         showError('No hay datos suficientes para generar el prorrateo. Asegúrate de tener datos GG y segmentos configurados.');
         return;
       }
@@ -174,7 +207,7 @@ export const ExpenseProration = () => {
 
       // Generar registros para cada combinación concepto-segmento
       conceptTotals.forEach((totalImporte, concepto) => {
-        segments.forEach(segment => {
+        activeSegs.forEach(segment => {
           const porcentaje = segment.count / totalCerdos;
           const importeProrrateo = totalImporte * porcentaje;
 
@@ -201,10 +234,15 @@ export const ExpenseProration = () => {
       processData.prorrateo = prorrateoRecords;
       saveProcessData(processData);
 
-      setProrrateoData(prorrateoRecords);
-      setShowResults(true);
+      if (activeSection === 'apk') {
+        setApkProrrateoData(prorrateoRecords);
+        setShowApkResults(true);
+      } else {
+        setEpkProrrateoData(prorrateoRecords);
+        setShowEpkResults(true);
+      }
 
-      console.log(`✅ Prorrateo generado: ${prorrateoRecords.length} registros creados`);
+      console.log(`✅ Prorrateo ${activeSection.toUpperCase()} generado: ${prorrateoRecords.length} registros creados`);
     } catch (error) {
       console.error('❌ Error generando prorrateo:', error);
       showError('Error al generar el prorrateo. Verifica que todos los datos sean válidos.');
@@ -277,6 +315,9 @@ export const ExpenseProration = () => {
     }
   };
 
+  // Mostrar resultados según sección activa
+  const showResults = activeSection === 'apk' ? showApkResults : showEpkResults;
+
   return (
     <Box sx={{ width: '100%' }}>
       <Paper sx={{ padding: { xs: 2, sm: 3 }, mb: { xs: 2, sm: 3 } }}>
@@ -286,6 +327,12 @@ export const ExpenseProration = () => {
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
           Distribuye los gastos generales entre los segmentos según su porcentaje de cerdos
         </Typography>
+
+        {/* Tabs para cambiar entre APK y EPK */}
+        <Tabs value={activeSection} onChange={(_, value) => setActiveSection(value)} sx={{ mb: 3 }}>
+          <Tab label={`APK - Aparcería (${apkGgData.length} GG, ${apkSegments.length} segmentos)`} value="apk" />
+          <Tab label={`EPK - Producción (${epkGgData.length} GG, ${epkSegments.length} segmentos)`} value="epk" />
+        </Tabs>
 
         {/* Resumen de información */}
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ mb: 3 }}>
@@ -299,7 +346,7 @@ export const ExpenseProration = () => {
             <Typography variant="caption" color="text.secondary">
               Segmentos Configurados
             </Typography>
-            <Typography variant="h6">{segments.length}</Typography>
+            <Typography variant="h6">{activeSection === 'apk' ? apkSegments.length : epkSegments.length}</Typography>
           </Paper>
           <Paper variant="outlined" sx={{ p: 2, flex: 1 }}>
             <Typography variant="caption" color="text.secondary">
@@ -322,13 +369,13 @@ export const ExpenseProration = () => {
           </Alert>
         )}
 
-        {segments.length === 0 && (
+        {(activeSection === 'apk' ? apkSegments.length : epkSegments.length) === 0 && (
           <Alert severity="warning" sx={{ mb: 2 }}>
-            No hay segmentos configurados. Ve a la sección de Segmentos para agregar segmentos.
+            No hay segmentos configurados para {activeSection.toUpperCase()}. Ve a la sección de Segmentos para agregar segmentos.
           </Alert>
         )}
 
-        {totalCerdos === 0 && segments.length > 0 && (
+        {totalCerdos === 0 && (activeSection === 'apk' ? apkSegments.length : epkSegments.length) > 0 && (
           <Alert severity="error" sx={{ mb: 2 }}>
             El total de cerdos es 0. Asegúrate de que los segmentos tengan un conteo mayor a 0.
           </Alert>
@@ -339,7 +386,7 @@ export const ExpenseProration = () => {
           variant="contained"
           startIcon={<Calculate />}
           onClick={handleGenerateProration}
-          disabled={ggData.length === 0 || segments.length === 0 || totalCerdos === 0}
+          disabled={ggData.length === 0 || (activeSection === 'apk' ? apkSegments.length : epkSegments.length) === 0 || totalCerdos === 0}
           fullWidth
           sx={{ mb: 2 }}
         >

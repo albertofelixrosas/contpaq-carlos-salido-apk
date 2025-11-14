@@ -144,6 +144,49 @@ export function clearProcessData(): void {
 // ============================================
 
 /**
+ * Inicializa conceptos predefinidos del cliente si no existen
+ */
+export function initializePredefinedConcepts(): void {
+  const existingConcepts = getConcepts();
+  
+  // Si ya hay conceptos, no hacer nada
+  if (existingConcepts.length > 0) {
+    console.log('📋 Conceptos ya inicializados:', existingConcepts.length);
+    return;
+  }
+
+  // Conceptos predefinidos del cliente
+  const predefinedConcepts = [
+    "ALIMENTO",
+    "LECHONES",
+    "OBRA CIVIL",
+    "SUELDOS GJAS",
+    "SUELDOS ADMON",
+    "MEDICINA",
+    "VACUNA",
+    "GASOLINA",
+    "RENTA",
+    "VARIOS",
+    "EQ. TRANSPORTE",
+    "ENERGICA ELECTRICA",
+    "DIESEL",
+    "LIMPIEZA",
+    "GAS",
+    "UNIFORMES Y BOTAS"
+  ];
+
+  const today = new Date().toISOString();
+  const concepts: Concept[] = predefinedConcepts.map((text, index) => ({
+    id: `predefined-${index + 1}-${Date.now()}`,
+    text,
+    createdAt: today,
+  }));
+
+  saveConcepts(concepts);
+  console.log('✅ Conceptos predefinidos inicializados:', concepts.length);
+}
+
+/**
  * Obtiene conceptos desde localStorage
  */
 export function getConcepts(): Concept[] {

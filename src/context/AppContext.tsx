@@ -3,7 +3,7 @@
  * Maneja el estado compartido entre todos los features
  */
 
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { ApkRecord, GgRecord, Concept, Segment } from '../types';
 import {
@@ -15,6 +15,7 @@ import {
   getConcepts,
   saveSegments,
   getSegments,
+  initializePredefinedConcepts,
 } from '../services/localStorage';
 
 interface AppContextType {
@@ -40,7 +41,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [apkData, setApkDataState] = useState<ApkRecord[]>(() => getApkData());
   const [ggData, setGgDataState] = useState<GgRecord[]>(() => getGgData());
-  const [concepts, setConceptsState] = useState<Concept[]>(() => getConcepts());
+  const [concepts, setConceptsState] = useState<Concept[]>(() => {
+    // Inicializar conceptos predefinidos si no existen
+    initializePredefinedConcepts();
+    return getConcepts();
+  });
   const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());
 
   const setApkData = (data: ApkRecord[]) => {

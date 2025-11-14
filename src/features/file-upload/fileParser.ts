@@ -1,4 +1,6 @@
 import type { ApkRecord, GgRecord } from '../../types';
+import { extractAccountCode } from '../../utils/accountCodeParser';
+import { applyConceptMapping } from '../../services/localStorage';
 
 // ========================================
 // REGEX (copiados del código vanilla original)
@@ -88,8 +90,19 @@ export const normalizeApkData = (rawData: unknown[]): ApkRecord[] => {
     // 1️⃣ Si la primera celda es un codigo de cuenta contable
     if (firstCell.match(accountNumberRegex)) {
       accountMatches++;
-      // La segunda celda es el nombre de la cuenta contable, y se guarda en la variable de estado
-      currentAccountName = String(row?.[1] || '').trim();
+      // La segunda celda es el nombre de la cuenta contable original
+      const originalAccountName = String(row?.[1] || '').trim();
+      
+      // Extraer el código de cuenta (segundo número)
+      const accountCode = extractAccountCode(firstCell);
+      
+      // Aplicar mapeo si existe, si no usar el texto original
+      if (accountCode) {
+        currentAccountName = applyConceptMapping(accountCode, originalAccountName, 'apk');
+      } else {
+        currentAccountName = originalAccountName;
+      }
+      
       if (accountMatches <= 3) {
         console.log('✅ Cuenta contable encontrada:', firstCell, '->', currentAccountName);
       }
@@ -227,9 +240,19 @@ export const normalizeGgData = (rawData: unknown[]): GgRecord[] => {
     // 133-000-000-000-00	PRODUCCION DE CERDOS EN PROCESO
     // 1️⃣ Si la primera celda es un codigo de cuenta contable
     if (firstCell.match(accountNumberRegex)) {
-      // La segunda celda es el nombre de la cuenta contable, y se guarda en la variable de estado
-      currentAccountName = String(row?.[1] || '').trim();
+      // La segunda celda es el nombre de la cuenta contable original
+      const originalAccountName = String(row?.[1] || '').trim();
       currentAccountCode = firstCell;
+      
+      // Extraer el código de cuenta (segundo número)
+      const accountCode = extractAccountCode(firstCell);
+      
+      // Aplicar mapeo si existe, si no usar el texto original
+      if (accountCode) {
+        currentAccountName = applyConceptMapping(accountCode, originalAccountName, 'gg');
+      } else {
+        currentAccountName = originalAccountName;
+      }
     }
     // Segmento:  100 GG
     // 2️⃣ Si la primera celda empieza con "segmento"

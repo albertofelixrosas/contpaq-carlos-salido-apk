@@ -1,4 +1,4 @@
-import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept } from '../types';
+import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping } from '../types';
 
 /**
  * Servicio para gestión de localStorage
@@ -7,6 +7,7 @@ import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concep
 const STORAGE_KEYS = {
   APK: 'apk',
   CONCEPTS: 'concepts',
+  CONCEPT_MAPPINGS: 'conceptMappings',
 } as const;
 
 // ============================================
@@ -273,4 +274,66 @@ export function getUniqueVueltas(): string[] {
   const data = getApkData();
   const uniqueVueltas = new Set(data.map(record => record.vuelta));
   return Array.from(uniqueVueltas).filter(Boolean).sort();
+}
+
+// ============================================
+// MAPEOS DE CONCEPTOS
+// ============================================
+
+/**
+ * Obtiene todos los mapeos de conceptos
+ */
+export function getConceptMappings(): ConceptMapping[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.CONCEPT_MAPPINGS);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error al obtener mapeos de conceptos:', error);
+    return [];
+  }
+}
+
+/**
+ * Guarda los mapeos de conceptos
+ */
+export function saveConceptMappings(mappings: ConceptMapping[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.CONCEPT_MAPPINGS, JSON.stringify(mappings));
+    console.log(`✅ Mapeos de conceptos guardados: ${mappings.length} registros`);
+  } catch (error) {
+    console.error('Error al guardar mapeos de conceptos:', error);
+    throw new Error('No se pudieron guardar los mapeos de conceptos');
+  }
+}
+
+/**
+ * Busca un mapeo por código de cuenta y tipo de datos
+ */
+export function findMappingByAccountCode(
+  accountCode: string,
+  dataType: 'apk' | 'gg'
+): ConceptMapping | undefined {
+  const mappings = getConceptMappings();
+  return mappings.find(
+    m => m.accountCode === accountCode && (m.dataType === dataType || m.dataType === 'both')
+  );
+}
+
+/**
+ * Aplica el mapeo a un nombre de cuenta contable
+ */
+export function applyConceptMapping(
+  accountCode: string,
+  originalText: string,
+  dataType: 'apk' | 'gg'
+): string {
+  const mapping = findMappingByAccountCode(accountCode, dataType);
+  
+  if (mapping) {
+    console.log(`✅ Mapeo aplicado: ${accountCode} -> ${mapping.targetConcept}`);
+    return mapping.targetConcept;
+  }
+  
+  // Si no hay mapeo, devolver el texto original
+  return originalText;
 }

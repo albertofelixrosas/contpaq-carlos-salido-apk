@@ -7,6 +7,7 @@ import { AppProvider, useAppContext } from './context/AppContext';
 import { FileUpload } from './features/file-upload';
 import { DataTable } from './features/data-table/DataTable';
 import { ConceptsManager } from './features/concepts/ConceptsManager';
+import { ConceptMappingManager } from './features/concept-mapping/ConceptMappingManager';
 import { SegmentEditor } from './features/segment-editor/SegmentEditor';
 import { ExpenseProration } from './features/prorrateo';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
@@ -144,6 +145,9 @@ function AppContent() {
             }}
           />
         );
+      
+      case 'concept-mapping':
+        return <ConceptMappingManager />;
       
       case 'prorrateo':
         return <ExpenseProration />;

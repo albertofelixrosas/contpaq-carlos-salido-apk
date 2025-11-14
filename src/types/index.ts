@@ -39,13 +39,34 @@ export interface GgRecord {
 }
 
 // ============================================
-// TIPOS DE CONCEPTOS
+// TIPOS PARA CONCEPTOS
 // ============================================
 
 export interface Concept {
   id: string;
   text: string;
   createdAt: string;
+}
+
+// ============================================
+// TIPOS PARA MAPEO DE CONCEPTOS
+// ============================================
+
+export interface ConceptMapping {
+  id: string;
+  accountCode: string;      // Código de cuenta (ej: "001", "002")
+  sourceText: string;        // Texto original del Excel
+  targetConcept: string;     // Concepto destino
+  dataType: 'apk' | 'gg' | 'both';  // A qué tipo aplica
+  createdAt: string;
+}
+
+export interface ParsedAccountCode {
+  full: string;              // Código completo (ej: "133-001-000-000-00")
+  mainGroup: string;         // Primer número (ej: "133")
+  accountCode: string;       // Segundo número (ej: "001")
+  isApk: boolean;            // true si mainGroup es "133"
+  isGg: boolean;             // true si mainGroup NO es "133"
 }
 
 // ============================================

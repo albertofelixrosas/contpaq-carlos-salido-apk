@@ -8,6 +8,7 @@ import { FileUpload } from './features/file-upload';
 import { DataTable } from './features/data-table/DataTable';
 import { ConceptsManager } from './features/concepts/ConceptsManager';
 import { SegmentEditor } from './features/segment-editor/SegmentEditor';
+import { ExpenseProration } from './features/prorrateo';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
 import { normalizeApkData, normalizeGgData, validateApkData, validateGgData } from './features/file-upload/fileParser';
 import { useNotification } from './hooks/useNotification';
@@ -145,12 +146,7 @@ function AppContent() {
         );
       
       case 'prorrateo':
-        return (
-          <Box>
-            <Typography variant="h5" gutterBottom>🧮 Prorrateo de Gastos</Typography>
-            <Typography color="text.secondary">Implementación pendiente...</Typography>
-          </Box>
-        );
+        return <ExpenseProration />;
       
       default:
         return <Typography>Pestaña desconocida</Typography>;

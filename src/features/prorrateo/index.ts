@@ -1,0 +1,1 @@
+export { ExpenseProration } from './ExpenseProration';

@@ -24,7 +24,7 @@ import {
 import { Calculate, ContentCopy, Download, BarChart, Category } from '@mui/icons-material';
 import * as XLSX from 'xlsx';
 import { useAppContext } from '../../context/AppContext';
-import { getProcessData, saveProcessData } from '../../services/localStorage';
+import { getDataByGroup, saveDataByGroup } from '../../services/localStorage';
 import { useNotification } from '../../hooks/useNotification';
 import type { ProrrateoRecord, GgRecord } from '../../types';
 import { Snackbar } from '@mui/material';
@@ -229,10 +229,11 @@ export const ExpenseProration = () => {
         });
       });
 
-      // Guardar datos de prorrateo
-      const processData = getProcessData();
+      // Guardar datos de prorrateo en el grupo correcto (APK o EPK)
+      const dataGroup = activeSection; // 'apk' o 'epk'
+      const processData = getDataByGroup(dataGroup);
       processData.prorrateo = prorrateoRecords;
-      saveProcessData(processData);
+      saveDataByGroup(dataGroup, processData);
 
       if (activeSection === 'apk') {
         setApkProrrateoData(prorrateoRecords);
@@ -242,7 +243,7 @@ export const ExpenseProration = () => {
         setShowEpkResults(true);
       }
 
-      console.log(`✅ Prorrateo ${activeSection.toUpperCase()} generado: ${prorrateoRecords.length} registros creados`);
+      console.log(`✅ Prorrateo ${activeSection.toUpperCase()} generado: ${prorrateoRecords.length} registros creados en localStorage['${dataGroup}']`);
     } catch (error) {
       console.error('❌ Error generando prorrateo:', error);
       showError('Error al generar el prorrateo. Verifica que todos los datos sean válidos.');

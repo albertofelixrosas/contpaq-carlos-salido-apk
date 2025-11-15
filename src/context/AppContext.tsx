@@ -18,6 +18,7 @@ import {
   saveSegmentsByGroup,
   initializePredefinedConcepts,
   initializePredefinedConceptMappings,
+  initializePredefinedTextMappings,
   initializeProcessData,
 } from '../services/localStorage';
 
@@ -63,6 +64,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
   const [concepts, setConceptsState] = useState<Concept[]>(() => {
     initializePredefinedConcepts();
     initializePredefinedConceptMappings();
+    initializePredefinedTextMappings();
     return getConcepts();
   });
   const [segments, setSegmentsState] = useState<Segment[]>(() => getSegments());

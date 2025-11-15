@@ -253,6 +253,8 @@ export function initializePredefinedConcepts(): void {
     "OBRA CIVIL",
     "SUELDOS GJAS",
     "SUELDOS ADMON",
+    "SUELDOS Y SALARIOS",
+    "ADMON SUELDOS",
     "MEDICINA",
     "VACUNA",
     "GASOLINA",
@@ -263,7 +265,8 @@ export function initializePredefinedConcepts(): void {
     "DIESEL",
     "LIMPIEZA",
     "GAS",
-    "UNIFORMES Y BOTAS"
+    "UNIFORMES Y BOTAS",
+    "DEPRECIACIONES"
   ];
 
   const today = new Date().toISOString();
@@ -319,11 +322,18 @@ export function initializePredefinedConceptMappings(): void {
     { accountCode: '32', sourceText: 'MEDICINA Y MATERIAL QUIRURGICO', targetConcept: '', dataType: 'apk' },
     { accountCode: '34', sourceText: 'NO DEDUCIBLES', targetConcept: '', dataType: 'apk' },
     
-    // GG (Gastos Generales)
+    // GG (Gastos Generales) - Basado en código legacy
+    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'gg' },
+    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'gg' },
+    { accountCode: '20', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
     { accountCode: '21', sourceText: 'GASOLINA', targetConcept: '', dataType: 'gg' },
     { accountCode: '24', sourceText: 'VARIOS', targetConcept: '', dataType: 'gg' },
-    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: '', dataType: 'gg' },
+    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'gg' },
     { accountCode: '29', sourceText: 'RENTAS', targetConcept: '', dataType: 'gg' },
+    { accountCode: '30', sourceText: 'DEPRECIACIONES', targetConcept: 'DEPRECIACIONES', dataType: 'gg' },
+    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
+    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
+    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
   ];
 
   const mappings: ConceptMapping[] = predefinedMappings.map((mapping, index) => ({
@@ -334,6 +344,49 @@ export function initializePredefinedConceptMappings(): void {
 
   saveConceptMappings(mappings);
   console.log('✅ Mapeos de conceptos predefinidos inicializados:', mappings.length);
+}
+
+/**
+ * Inicializa mapeos por texto predefinidos (basados en código legacy) si no existen
+ * Estos mapeos tienen PRIORIDAD ALTA sobre los mapeos por código
+ */
+export function initializePredefinedTextMappings(): void {
+  const existingMappings = getTextConceptMappings();
+  
+  // Si ya hay mapeos, no hacer nada
+  if (existingMappings.length > 0) {
+    console.log('📋 Mapeos por texto ya inicializados:', existingMappings.length);
+    return;
+  }
+
+  const today = new Date().toISOString();
+  const predefinedTextMappings: Omit<TextConceptMapping, 'id' | 'createdAt'>[] = [
+    // Mapeos por texto del código legacy (solo GG)
+    // Estos tienen la mayor prioridad y se evalúan primero
+    { 
+      textPattern: 'GRANJ', 
+      matchType: 'startsWith', 
+      targetConcept: 'SUELDOS Y SALARIOS', 
+      dataType: 'gg',
+      priority: 1
+    },
+    { 
+      textPattern: 'ADMIN', 
+      matchType: 'startsWith', 
+      targetConcept: 'ADMON SUELDOS', 
+      dataType: 'gg',
+      priority: 2
+    },
+  ];
+
+  const mappings: TextConceptMapping[] = predefinedTextMappings.map((mapping, index) => ({
+    id: `text-mapping-${mapping.dataType}-${Date.now()}-${index}`,
+    ...mapping,
+    createdAt: today,
+  }));
+
+  saveTextConceptMappings(mappings);
+  console.log('✅ Mapeos por texto predefinidos inicializados:', mappings.length);
 }
 
 /**

@@ -294,38 +294,37 @@ export function initializePredefinedConceptMappings(): void {
   }
 
   const today = new Date().toISOString();
+  // Mapeos generados desde el catálogo de cuentas (cuentas principales XXX-XXX-000-000-00)
   const predefinedMappings: Omit<ConceptMapping, 'id' | 'createdAt'>[] = [
-    // EPK (Producción/Engorda - 133-xxx) - Incluye tanto vueltas como GG
-    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'epk' },
-    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'epk' },
-    { accountCode: '20', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'epk' },
-    { accountCode: '23', sourceText: 'UNIFORMES T BOTAS', targetConcept: 'UNIFORMES Y BOTAS', dataType: 'epk' },
-    { accountCode: '24', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
-    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'epk' },
-    { accountCode: '27', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: 'LIMPIEZA', dataType: 'epk' },
-    { accountCode: '28', sourceText: 'GAS', targetConcept: 'GAS', dataType: 'epk' },
-    { accountCode: '29', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'epk' },
-    { accountCode: '30', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGICA ELECTRICA', dataType: 'epk' },
-    { accountCode: '35', sourceText: 'ALIMENTO', targetConcept: 'ALIMENTO', dataType: 'epk' },
-    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
-    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
-    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
+    // Mapeos APK (35 cuentas principales)
+    { accountCode: '001', sourceText: 'SUELDOS Y SALARIOS', targetConcept: 'SUELDOS Y SALARIOS', dataType: 'apk' },
+    { accountCode: '016', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'apk' },
+    { accountCode: '017', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'apk' },
+    { accountCode: '018', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'apk' },
+    { accountCode: '020', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
+    { accountCode: '021', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: 'LIMPIEZA', dataType: 'apk' },
+    { accountCode: '022', sourceText: 'MANTENIMIENTO MAQUINARIA Y EQUIPO', targetConcept: 'EQ. TRANSPORTE', dataType: 'apk' },
+    { accountCode: '025', sourceText: 'MANTO. EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'apk' },
+    { accountCode: '027', sourceText: 'GAS', targetConcept: 'GAS', dataType: 'apk' },
+    { accountCode: '028', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'apk' },
+    { accountCode: '029', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGIA ELECTRICA', dataType: 'apk' },
+    { accountCode: '030', sourceText: 'DEPRECIACIONES Y AMORTIZACIONES', targetConcept: 'DEPRECIACIONES', dataType: 'apk' },
+    { accountCode: '032', sourceText: 'MEDICINA Y MATERIAL QUIRURGICO', targetConcept: 'MEDICINA', dataType: 'apk' },
+    { accountCode: '034', sourceText: 'NO DEDUCIBLES', targetConcept: 'NO DEDUCIBLES', dataType: 'apk' },
     
-    // APK (Aparcería - 132-xxx) - Incluye tanto vueltas como GG
-    { accountCode: '16', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'apk' },
-    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'apk' },
-    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'apk' },
-    { accountCode: '20', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
-    { accountCode: '21', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: 'LIMPIEZA', dataType: 'apk' },
-    { accountCode: '22', sourceText: 'MANTENIMIENTO MAQUINARIA Y EQUIPO', targetConcept: 'EQ. TRANSPORTE', dataType: 'apk' },
-    { accountCode: '25', sourceText: 'MANTO. EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'apk' },
-    { accountCode: '27', sourceText: 'GAS', targetConcept: 'GAS', dataType: 'apk' },
-    { accountCode: '28', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'apk' },
-    { accountCode: '29', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGICA ELECTRICA', dataType: 'apk' },
-    { accountCode: '30', sourceText: 'DEPRECIACIONES', targetConcept: 'DEPRECIACIONES', dataType: 'apk' },
-    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
-    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
-    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
+    // Mapeos EPK (30 cuentas principales)
+    { accountCode: '001', sourceText: 'SUELDOS Y SALARIOS', targetConcept: 'SUELDOS Y SALARIOS', dataType: 'epk' },
+    { accountCode: '020', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'epk' },
+    { accountCode: '021', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'epk' },
+    { accountCode: '023', sourceText: 'UNIFORMES Y BOTAS', targetConcept: 'UNIFORMES Y BOTAS', dataType: 'epk' },
+    { accountCode: '024', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
+    { accountCode: '025', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'epk' },
+    { accountCode: '027', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: 'LIMPIEZA', dataType: 'epk' },
+    { accountCode: '028', sourceText: 'GAS', targetConcept: 'GAS', dataType: 'epk' },
+    { accountCode: '029', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'epk' },
+    { accountCode: '030', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGIA ELECTRICA', dataType: 'epk' },
+    { accountCode: '031', sourceText: 'MEDICINA Y MATERIAL QUIRURGICO', targetConcept: 'MEDICINA', dataType: 'epk' },
+    { accountCode: '034', sourceText: 'NO DEDUCIBLES', targetConcept: 'NO DEDUCIBLES', dataType: 'epk' },
   ];
 
   const mappings: ConceptMapping[] = predefinedMappings.map((mapping, index) => ({

@@ -266,12 +266,22 @@ export const normalizeApkData = (rawData: unknown[], processType: ProcessType = 
       const paymentConcept = rowObject.concepto || ""; // "GRANJAS NOM SEM 39..."
       const accountCode = extractAccountCode(currentAccountCode);
       
+      console.log(`🔍 Procesando fila ${i}:`, {
+        currentAccountCode,
+        extractedAccountCode: accountCode,
+        originalAccountName: currentOriginalAccountName,
+        paymentConcept: paymentConcept.substring(0, 50),
+        processType
+      });
+      
       currentAccountName = applyFullConceptMapping(
         accountCode || "",
         currentOriginalAccountName,
         paymentConcept,
         processType // Usa el processType detectado (apk o epk)
       );
+      
+      console.log(`✅ Concepto aplicado: "${currentAccountName}"`);
 
       // En caso de que un valor no exista, se asigna cadena vacía o 0
       // Se crea el nuevo objeto con la estructura deseada

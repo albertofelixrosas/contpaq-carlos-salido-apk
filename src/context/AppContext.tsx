@@ -92,6 +92,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       currentProcessData.gg = data as GgRecord[];
     } else {
       currentProcessData.data = data as ApkRecord[];
+      // Inicializar segmentos con count en 0 para que el usuario los configure manualmente
       currentProcessData.segments = Array.from(segmentNames).map(seg => ({ segment: seg, count: 0 }));
     }
 
@@ -106,10 +107,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setGgData([...data as GgRecord[], ...epkGgData]);
       } else {
         setApkData(data as ApkRecord[]);
-        // Actualizar segmentos de APK
+        // Actualizar segmentos de APK con count en 0 (el usuario lo configurará manualmente)
         const newSegments = Array.from(segmentNames).map(seg => ({ 
           segment: seg, 
-          count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length 
+          count: 0
         }));
         setApkSegments(newSegments);
       }
@@ -120,10 +121,10 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setGgData([...apkGgData, ...data as GgRecord[]]);
       } else {
         setEpkData(data as ApkRecord[]);
-        // Actualizar segmentos de EPK
+        // Actualizar segmentos de EPK con count en 0 (el usuario lo configurará manualmente)
         const newSegments = Array.from(segmentNames).map(seg => ({ 
           segment: seg, 
-          count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length 
+          count: 0
         }));
         setEpkSegments(newSegments);
       }
@@ -134,7 +135,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
       const currentSegments = getSegments();
       const newSegments = Array.from(segmentNames).map(seg => ({
         segment: seg,
-        count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length,
+        count: 0,
       }));
       
       // Merge con segmentos existentes

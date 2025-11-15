@@ -42,7 +42,7 @@ export const ConceptMappingManager = () => {
   const [formAccountCode, setFormAccountCode] = useState('');
   const [formSourceText, setFormSourceText] = useState('');
   const [formTargetConcept, setFormTargetConcept] = useState('');
-  const [formDataType, setFormDataType] = useState<'apk' | 'epk' | 'gg' | 'both'>('apk');
+  const [formDataType, setFormDataType] = useState<'apk' | 'epk'>('apk');
 
   // Obtener lista de conceptos disponibles
   const availableConcepts = useMemo(() => {
@@ -53,8 +53,8 @@ export const ConceptMappingManager = () => {
   const stats = useMemo(() => {
     return {
       total: mappings.length,
-      apk: mappings.filter(m => m.dataType === 'apk' || m.dataType === 'both').length,
-      gg: mappings.filter(m => m.dataType === 'gg' || m.dataType === 'both').length,
+      apk: mappings.filter(m => m.dataType === 'apk').length,
+      epk: mappings.filter(m => m.dataType === 'epk').length,
     };
   }, [mappings]);
 
@@ -63,7 +63,7 @@ export const ConceptMappingManager = () => {
     setFormAccountCode('');
     setFormSourceText('');
     setFormTargetConcept('');
-    setFormDataType('both');
+    setFormDataType('apk');
     setIsAddModalOpen(true);
   };
 
@@ -148,7 +148,7 @@ export const ConceptMappingManager = () => {
               accountCode,
               sourceText,
               targetConcept,
-              dataType: 'both',
+              dataType: 'apk', // Por defecto APK, el usuario puede editar después
               createdAt: new Date().toISOString(),
             });
           }
@@ -232,8 +232,8 @@ export const ConceptMappingManager = () => {
         {/* Estadísticas */}
         <Stack direction="row" spacing={2} mb={3}>
           <Chip label={`Total: ${stats.total}`} color="primary" />
-          <Chip label={`APK: ${stats.apk}`} color="success" variant="outlined" />
-          <Chip label={`GG: ${stats.gg}`} color="info" variant="outlined" />
+          <Chip label={`APK: ${stats.apk}`} color="info" variant="outlined" />
+          <Chip label={`EPK: ${stats.epk}`} color="secondary" variant="outlined" />
         </Stack>
 
         {/* Información de ayuda */}
@@ -280,7 +280,7 @@ export const ConceptMappingManager = () => {
                       <Chip 
                         label={mapping.dataType.toUpperCase()} 
                         size="small" 
-                        color={mapping.dataType === 'apk' ? 'info' : mapping.dataType === 'gg' ? 'warning' : 'default'}
+                        color={mapping.dataType === 'apk' ? 'info' : 'secondary'}
                         variant="outlined"
                       />
                     </TableCell>
@@ -348,16 +348,14 @@ export const ConceptMappingManager = () => {
             </FormControl>
 
             <FormControl fullWidth>
-              <InputLabel>Aplicar a</InputLabel>
+              <InputLabel>Tipo de Negocio</InputLabel>
               <Select
                 value={formDataType}
-                onChange={(e) => setFormDataType(e.target.value as 'apk' | 'gg' | 'both')}
-                label="Aplicar a"
+                onChange={(e) => setFormDataType(e.target.value as 'apk' | 'epk')}
+                label="Tipo de Negocio"
               >
-                <MenuItem value="both">Ambos (APK y GG)</MenuItem>
-                <MenuItem value="apk">Solo APK</MenuItem>
-                <MenuItem value="epk">Solo EPK</MenuItem>
-                <MenuItem value="gg">Solo GG</MenuItem>
+                <MenuItem value="apk">APK - Aparcería (132-xxx)</MenuItem>
+                <MenuItem value="epk">EPK - Producción/Engorda (133-xxx)</MenuItem>
               </Select>
             </FormControl>
           </Stack>

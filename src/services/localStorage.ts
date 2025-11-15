@@ -1,4 +1,4 @@
-import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping, DataGroup } from '../types';
+import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping, DataGroup, AccountCatalogEntry } from '../types';
 
 /**
  * Servicio para gestión de localStorage
@@ -10,6 +10,7 @@ const STORAGE_KEYS = {
   CONCEPTS: 'concepts',
   CONCEPT_MAPPINGS: 'conceptMappings',
   TEXT_CONCEPT_MAPPINGS: 'textConceptMappings',
+  ACCOUNT_CATALOG: 'accountCatalog',
 } as const;
 
 // ============================================
@@ -294,7 +295,9 @@ export function initializePredefinedConceptMappings(): void {
 
   const today = new Date().toISOString();
   const predefinedMappings: Omit<ConceptMapping, 'id' | 'createdAt'>[] = [
-    // EPK (Producción/Engorda)
+    // EPK (Producción/Engorda - 133-xxx) - Incluye tanto vueltas como GG
+    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'epk' },
+    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'epk' },
     { accountCode: '20', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'epk' },
     { accountCode: '23', sourceText: 'UNIFORMES T BOTAS', targetConcept: 'UNIFORMES Y BOTAS', dataType: 'epk' },
     { accountCode: '24', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
@@ -304,9 +307,14 @@ export function initializePredefinedConceptMappings(): void {
     { accountCode: '29', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'epk' },
     { accountCode: '30', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGICA ELECTRICA', dataType: 'epk' },
     { accountCode: '35', sourceText: 'ALIMENTO', targetConcept: 'ALIMENTO', dataType: 'epk' },
+    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
+    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
+    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'epk' },
     
-    // APK (Aparcería)
+    // APK (Aparcería - 132-xxx) - Incluye tanto vueltas como GG
     { accountCode: '16', sourceText: 'OBRA CIVIL', targetConcept: 'OBRA CIVIL', dataType: 'apk' },
+    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'apk' },
+    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'apk' },
     { accountCode: '20', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
     { accountCode: '21', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: 'LIMPIEZA', dataType: 'apk' },
     { accountCode: '22', sourceText: 'MANTENIMIENTO MAQUINARIA Y EQUIPO', targetConcept: 'EQ. TRANSPORTE', dataType: 'apk' },
@@ -314,16 +322,10 @@ export function initializePredefinedConceptMappings(): void {
     { accountCode: '27', sourceText: 'GAS', targetConcept: 'GAS', dataType: 'apk' },
     { accountCode: '28', sourceText: 'RENTAS', targetConcept: 'RENTA', dataType: 'apk' },
     { accountCode: '29', sourceText: 'ENERGIA ELECTRICA', targetConcept: 'ENERGICA ELECTRICA', dataType: 'apk' },
-    
-    // GG (Gastos Generales) - Diferentes códigos según APK/EPK
-    { accountCode: '17', sourceText: 'GASOLINA', targetConcept: 'GASOLINA', dataType: 'gg' },
-    { accountCode: '18', sourceText: 'DIESEL', targetConcept: 'DIESEL', dataType: 'gg' },
-    { accountCode: '20', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
-    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: 'EQ. TRANSPORTE', dataType: 'gg' },
-    { accountCode: '30', sourceText: 'DEPRECIACIONES', targetConcept: 'DEPRECIACIONES', dataType: 'gg' },
-    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
-    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
-    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'gg' },
+    { accountCode: '30', sourceText: 'DEPRECIACIONES', targetConcept: 'DEPRECIACIONES', dataType: 'apk' },
+    { accountCode: '34', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
+    { accountCode: '37', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
+    { accountCode: '39', sourceText: 'VARIOS', targetConcept: 'VARIOS', dataType: 'apk' },
   ];
 
   const mappings: ConceptMapping[] = predefinedMappings.map((mapping, index) => ({
@@ -351,20 +353,34 @@ export function initializePredefinedTextMappings(): void {
 
   const today = new Date().toISOString();
   const predefinedTextMappings: Omit<TextConceptMapping, 'id' | 'createdAt'>[] = [
-    // Mapeos por texto del código legacy (solo GG)
-    // Estos tienen la mayor prioridad y se evalúan primero
+    // Mapeos por texto para GG de EPK (133-xxx)
     { 
       textPattern: 'GRANJ', 
       matchType: 'startsWith', 
       targetConcept: 'SUELDOS Y SALARIOS', 
-      dataType: 'gg',
+      dataType: 'epk',
       priority: 1
     },
     { 
       textPattern: 'ADMIN', 
       matchType: 'startsWith', 
       targetConcept: 'ADMON SUELDOS', 
-      dataType: 'gg',
+      dataType: 'epk',
+      priority: 2
+    },
+    // Mapeos por texto para GG de APK (132-xxx)
+    { 
+      textPattern: 'GRANJ', 
+      matchType: 'startsWith', 
+      targetConcept: 'SUELDOS Y SALARIOS', 
+      dataType: 'apk',
+      priority: 1
+    },
+    { 
+      textPattern: 'ADMIN', 
+      matchType: 'startsWith', 
+      targetConcept: 'ADMON SUELDOS', 
+      dataType: 'apk',
       priority: 2
     },
   ];
@@ -503,7 +519,7 @@ export function saveConceptMappings(mappings: ConceptMapping[]): void {
  */
 export function findMappingByAccountCode(
   accountCode: string,
-  dataType: 'apk' | 'epk' | 'gg'
+  dataType: 'apk' | 'epk'
 ): ConceptMapping | undefined {
   const mappings = getConceptMappings();
   // Normalizar código: eliminar ceros a la izquierda para comparación flexible
@@ -511,7 +527,7 @@ export function findMappingByAccountCode(
   
   return mappings.find(m => {
     const mappingNormalizedCode = m.accountCode.replace(/^0+/, '') || '0';
-    return mappingNormalizedCode === normalizedCode && (m.dataType === dataType || m.dataType === 'both');
+    return mappingNormalizedCode === normalizedCode && m.dataType === dataType;
   });
 }
 
@@ -521,7 +537,7 @@ export function findMappingByAccountCode(
 export function applyConceptMapping(
   accountCode: string,
   originalText: string,
-  dataType: 'apk' | 'epk' | 'gg'
+  dataType: 'apk' | 'epk'
 ): string {
   const mapping = findMappingByAccountCode(accountCode, dataType);
   
@@ -570,13 +586,13 @@ export function saveTextConceptMappings(mappings: TextConceptMapping[]): void {
  */
 export function findMappingByConceptText(
   conceptText: string,
-  dataType: 'apk' | 'epk' | 'gg'
+  dataType: 'apk' | 'epk'
 ): TextConceptMapping | undefined {
   const mappings = getTextConceptMappings();
   
   // Filtrar por tipo de datos y ordenar por prioridad
   const applicableMappings = mappings
-    .filter(m => m.dataType === dataType || m.dataType === 'both')
+    .filter(m => m.dataType === dataType)
     .sort((a, b) => a.priority - b.priority);
   
   // Buscar la primera coincidencia
@@ -616,7 +632,7 @@ export function applyFullConceptMapping(
   accountCode: string,
   originalText: string,
   conceptText: string,
-  dataType: 'apk' | 'epk' | 'gg'
+  dataType: 'apk' | 'epk'
 ): string {
   // 1. PRIORIDAD ALTA: Mapeo por texto de concepto de pago
   const textMapping = findMappingByConceptText(conceptText, dataType);
@@ -634,4 +650,75 @@ export function applyFullConceptMapping(
   
   // 3. Sin mapeo: usar texto original
   return originalText;
+}
+
+// ============================================
+// CATÁLOGO DE CUENTAS CONTABLES
+// ============================================
+
+/**
+ * Obtiene el catálogo de cuentas contables
+ */
+export function getAccountCatalog(): AccountCatalogEntry[] {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEYS.ACCOUNT_CATALOG);
+    return stored ? JSON.parse(stored) : [];
+  } catch (error) {
+    console.error('Error al obtener catálogo de cuentas:', error);
+    return [];
+  }
+}
+
+/**
+ * Guarda el catálogo de cuentas contables
+ */
+export function saveAccountCatalog(catalog: AccountCatalogEntry[]): void {
+  try {
+    localStorage.setItem(STORAGE_KEYS.ACCOUNT_CATALOG, JSON.stringify(catalog));
+    console.log(`✅ Catálogo de cuentas guardado: ${catalog.length} registros`);
+  } catch (error) {
+    console.error('Error al guardar catálogo de cuentas:', error);
+    throw new Error('No se pudo guardar el catálogo de cuentas');
+  }
+}
+
+/**
+ * Registra una cuenta contable en el catálogo
+ * Si ya existe, incrementa el contador de ocurrencias
+ */
+export function registerAccountInCatalog(
+  fullCode: string,
+  accountName: string,
+  dataType: 'apk' | 'epk'
+): void {
+  const catalog = getAccountCatalog();
+  const existing = catalog.find(entry => entry.fullCode === fullCode);
+  
+  if (existing) {
+    // Ya existe, incrementar contador y actualizar última aparición
+    existing.occurrences++;
+    existing.lastSeen = new Date().toISOString();
+  } else {
+    // Nueva cuenta, agregarla
+    const newEntry: AccountCatalogEntry = {
+      id: `account-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      fullCode,
+      accountName,
+      dataType,
+      occurrences: 1,
+      createdAt: new Date().toISOString(),
+      lastSeen: new Date().toISOString(),
+    };
+    catalog.push(newEntry);
+  }
+  
+  saveAccountCatalog(catalog);
+}
+
+/**
+ * Limpia el catálogo de cuentas
+ */
+export function clearAccountCatalog(): void {
+  localStorage.removeItem(STORAGE_KEYS.ACCOUNT_CATALOG);
+  console.log('🗑️ Catálogo de cuentas limpiado');
 }

@@ -10,6 +10,7 @@ import { DataTable } from './features/data-table/DataTable';
 import { ConceptsManager } from './features/concepts/ConceptsManager';
 import { ConceptMappingManager } from './features/concept-mapping/ConceptMappingManager';
 import TextConceptMappingManager from './features/concept-mapping/TextConceptMappingManager';
+import { AccountCatalogManager } from './features/account-catalog';
 import { SegmentEditor } from './features/segment-editor/SegmentEditor';
 import { ExpenseProration } from './features/prorrateo';
 import { useUniqueConceptsFromData } from './features/concepts/useUniqueConceptsFromData';
@@ -355,6 +356,9 @@ function AppContent() {
       
       case 'text-mapping':
         return <TextConceptMappingManager />;
+      
+      case 'account-catalog':
+        return <AccountCatalogManager />;
       
       case 'prorrateo':
         return <ExpenseProration />;

@@ -7,9 +7,10 @@ import {
   Calculate,
   Link,
   TextFields,
+  AccountTree,
 } from '@mui/icons-material';
 
-export type TabValue = 'upload' | 'table' | 'concepts' | 'segments' | 'concept-mapping' | 'text-mapping' | 'prorrateo';
+export type TabValue = 'upload' | 'table' | 'concepts' | 'segments' | 'concept-mapping' | 'text-mapping' | 'account-catalog' | 'prorrateo';
 
 interface NavigationProps {
   currentTab: TabValue;
@@ -22,6 +23,7 @@ const tabs = [
   { value: 'concepts' as TabValue, label: 'Conceptos', icon: <Label fontSize="small" /> },
   { value: 'concept-mapping' as TabValue, label: 'Mapeo Código', icon: <Link fontSize="small" /> },
   { value: 'text-mapping' as TabValue, label: 'Mapeo Texto', icon: <TextFields fontSize="small" /> },
+  { value: 'account-catalog' as TabValue, label: 'Catálogo Cuentas', icon: <AccountTree fontSize="small" /> },
   { value: 'segments' as TabValue, label: 'Segmentos', icon: <SegmentOutlined fontSize="small" /> },
   { value: 'prorrateo' as TabValue, label: 'Prorrateo', icon: <Calculate fontSize="small" /> },
 ];

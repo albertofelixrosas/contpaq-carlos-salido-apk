@@ -42,7 +42,7 @@ const TextConceptMappingManager: React.FC = () => {
     textPattern: '',
     matchType: 'startsWith' as 'startsWith' | 'contains' | 'exact',
     targetConcept: '',
-    dataType: 'apk' as 'apk' | 'epk' | 'gg' | 'both',
+    dataType: 'apk' as 'apk' | 'epk',
     priority: 1,
   });
 
@@ -168,7 +168,7 @@ const TextConceptMappingManager: React.FC = () => {
             matchType: (matchType as 'startsWith' | 'contains' | 'exact') || 'startsWith',
             targetConcept,
             priority: priorityStr ? parseInt(priorityStr, 10) : index + 1,
-            dataType: (dataTypeStr as 'apk' | 'gg' | 'both') || 'apk',
+            dataType: (dataTypeStr as 'apk' | 'epk') || 'apk',
             createdAt: new Date().toISOString(),
           };
         });
@@ -196,8 +196,7 @@ const TextConceptMappingManager: React.FC = () => {
   const getDataTypeColor = (type: string) => {
     switch (type) {
       case 'apk': return 'primary';
-      case 'gg': return 'secondary';
-      case 'both': return 'success';
+      case 'epk': return 'secondary';
       default: return 'default';
     }
   };
@@ -365,16 +364,14 @@ const TextConceptMappingManager: React.FC = () => {
             />
 
             <FormControl fullWidth>
-              <InputLabel>Tipo de Datos</InputLabel>
+              <InputLabel>Tipo de Negocio</InputLabel>
               <Select
                 value={formData.dataType}
                 onChange={(e) => setFormData({ ...formData, dataType: e.target.value as any })}
-                label="Tipo de Datos"
+                label="Tipo de Negocio"
               >
-                <MenuItem value="apk">Solo APK</MenuItem>
-                <MenuItem value="epk">Solo EPK</MenuItem>
-                <MenuItem value="gg">Solo GG</MenuItem>
-                <MenuItem value="both">Ambos (APK y GG)</MenuItem>
+                <MenuItem value="apk">APK - Aparcería (132-xxx)</MenuItem>
+                <MenuItem value="epk">EPK - Producción/Engorda (133-xxx)</MenuItem>
               </Select>
             </FormControl>
           </Stack>

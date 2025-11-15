@@ -1,6 +1,6 @@
 import type { ApkRecord, GgRecord, FileDetectionResult, ProcessType, DataGroup } from '../../types';
 import { extractAccountCode } from '../../utils/accountCodeParser';
-import { applyFullConceptMapping } from '../../services/localStorage';
+import { applyFullConceptMapping, registerAccountInCatalog } from '../../services/localStorage';
 
 // ========================================
 // REGEX (copiados del código vanilla original)
@@ -223,6 +223,9 @@ export const normalizeApkData = (rawData: unknown[], processType: ProcessType = 
       // La segunda celda es el nombre de la cuenta contable original
       const originalAccountName = String(row?.[1] || '').trim();
       
+      // Registrar en el catálogo de cuentas
+      registerAccountInCatalog(firstCell, originalAccountName, processType);
+      
       // TEMPORAL: Guardamos el código y el texto original
       // El mapeo se aplicará cuando tengamos el texto completo del concepto de pago
       currentAccountCode = firstCell;
@@ -354,6 +357,9 @@ export const normalizeGgData = (rawData: unknown[], processType: ProcessType = '
       // La segunda celda es el nombre de la cuenta contable original
       const originalAccountName = String(row?.[1] || '').trim();
       
+      // Registrar en el catálogo de cuentas
+      registerAccountInCatalog(firstCell, originalAccountName, processType);
+      
       // TEMPORAL: Guardamos el código y el texto original
       // El mapeo se aplicará cuando tengamos el texto completo del concepto de pago
       currentAccountCode = firstCell;
@@ -392,7 +398,7 @@ export const normalizeGgData = (rawData: unknown[], processType: ProcessType = '
         accountCode || "",
         currentOriginalAccountName,
         paymentConcept,
-        'gg'
+        processType // Usa el processType detectado (apk o epk), NO 'gg'
       );
 
       const newRowObject: GgRecord = {

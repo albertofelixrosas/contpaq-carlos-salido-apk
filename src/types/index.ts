@@ -57,7 +57,7 @@ export interface ConceptMapping {
   accountCode: string;      // Código de cuenta (ej: "001", "002")
   sourceText: string;        // Texto original del Excel
   targetConcept: string;     // Concepto destino
-  dataType: 'apk' | 'epk' | 'gg' | 'both';  // A qué tipo aplica
+  dataType: 'apk' | 'epk';  // APK (132-xxx) o EPK (133-xxx)
   createdAt: string;
 }
 
@@ -66,7 +66,7 @@ export interface TextConceptMapping {
   textPattern: string;       // Patrón de texto (ej: "GRANJAS", "ADMIN")
   matchType: 'startsWith' | 'contains' | 'exact';  // Tipo de coincidencia
   targetConcept: string;     // Concepto destino
-  dataType: 'apk' | 'epk' | 'gg' | 'both';  // A qué tipo aplica
+  dataType: 'apk' | 'epk';  // APK (132-xxx) o EPK (133-xxx)
   priority: number;          // Prioridad (menor = más alta)
   createdAt: string;
 }
@@ -76,6 +76,16 @@ export interface ParsedAccountCode {
   mainGroup: string;         // Primer número (ej: "133" o "132")
   accountCode: string;       // Segundo número (ej: "001")
   processType: ProcessType;  // 'apk' si mainGroup es "132", 'epk' si es "133"
+}
+
+export interface AccountCatalogEntry {
+  id: string;
+  fullCode: string;          // Código completo (ej: "133-001-000-000-00")
+  accountName: string;       // Nombre de la cuenta (ej: "SUELDOS Y SALARIOS")
+  dataType: 'apk' | 'epk';   // APK (132-xxx) o EPK (133-xxx)
+  occurrences: number;       // Número de veces que aparece
+  createdAt: string;
+  lastSeen: string;
 }
 
 // ============================================

@@ -278,6 +278,65 @@ export function initializePredefinedConcepts(): void {
 }
 
 /**
+ * Inicializa mapeos de conceptos por código predefinidos si no existen
+ */
+export function initializePredefinedConceptMappings(): void {
+  const existingMappings = getConceptMappings();
+  
+  // Si ya hay mapeos, no hacer nada
+  if (existingMappings.length > 0) {
+    console.log('📋 Mapeos de conceptos ya inicializados:', existingMappings.length);
+    return;
+  }
+
+  const today = new Date().toISOString();
+  const predefinedMappings: Omit<ConceptMapping, 'id' | 'createdAt'>[] = [
+    // EPK (Producción/Engorda)
+    { accountCode: '20', sourceText: 'OBRA CIVIL', targetConcept: '', dataType: 'epk' },
+    { accountCode: '23', sourceText: 'UNIFORMES T BOTAS', targetConcept: '', dataType: 'epk' },
+    { accountCode: '24', sourceText: 'VARIOS', targetConcept: '', dataType: 'epk' },
+    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: '', dataType: 'epk' },
+    { accountCode: '27', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: '', dataType: 'epk' },
+    { accountCode: '28', sourceText: 'GAS', targetConcept: '', dataType: 'epk' },
+    { accountCode: '29', sourceText: 'RENTAS', targetConcept: '', dataType: 'epk' },
+    { accountCode: '30', sourceText: 'ENERGIA ELECTRICA', targetConcept: '', dataType: 'epk' },
+    { accountCode: '31', sourceText: 'MEDICINA Y MATERIAL QUIRURGICO', targetConcept: '', dataType: 'epk' },
+    { accountCode: '34', sourceText: 'NO DEDUCIBLES', targetConcept: '', dataType: 'epk' },
+    { accountCode: '35', sourceText: 'ALIMENTO', targetConcept: '', dataType: 'epk' },
+    { accountCode: '35-001', sourceText: 'ALIMENTO, MERMAS ALIMENTO', targetConcept: '', dataType: 'epk' },
+    { accountCode: '35-002', sourceText: 'ALIMENTO, MERMAS ALIMENTO', targetConcept: '', dataType: 'epk' },
+    { accountCode: '100', sourceText: 'TR SALDO AL COSTO DE VENTAS', targetConcept: '', dataType: 'epk' },
+    
+    // APK (Aparcería)
+    { accountCode: '16', sourceText: 'OBRA CIVIL', targetConcept: '', dataType: 'apk' },
+    { accountCode: '20', sourceText: 'VARIOS', targetConcept: '', dataType: 'apk' },
+    { accountCode: '21', sourceText: 'ARTÍCULOS DE LIMPIEZA', targetConcept: '', dataType: 'apk' },
+    { accountCode: '22', sourceText: 'MANTENIMIENTO MAQUINARIA Y EQUIPO', targetConcept: '', dataType: 'apk' },
+    { accountCode: '25', sourceText: 'MANTO. EQUIPO TRANSPORTE', targetConcept: '', dataType: 'apk' },
+    { accountCode: '27', sourceText: 'GAS', targetConcept: '', dataType: 'apk' },
+    { accountCode: '28', sourceText: 'RENTAS', targetConcept: '', dataType: 'apk' },
+    { accountCode: '29', sourceText: 'ENERGIA ELECTRICA', targetConcept: '', dataType: 'apk' },
+    { accountCode: '32', sourceText: 'MEDICINA Y MATERIAL QUIRURGICO', targetConcept: '', dataType: 'apk' },
+    { accountCode: '34', sourceText: 'NO DEDUCIBLES', targetConcept: '', dataType: 'apk' },
+    
+    // GG (Gastos Generales)
+    { accountCode: '21', sourceText: 'GASOLINA', targetConcept: '', dataType: 'gg' },
+    { accountCode: '24', sourceText: 'VARIOS', targetConcept: '', dataType: 'gg' },
+    { accountCode: '25', sourceText: 'MANTO.EQUIPO TRANSPORTE', targetConcept: '', dataType: 'gg' },
+    { accountCode: '29', sourceText: 'RENTAS', targetConcept: '', dataType: 'gg' },
+  ];
+
+  const mappings: ConceptMapping[] = predefinedMappings.map((mapping, index) => ({
+    id: `mapping-${mapping.dataType}-${mapping.accountCode}-${Date.now()}-${index}`,
+    ...mapping,
+    createdAt: today,
+  }));
+
+  saveConceptMappings(mappings);
+  console.log('✅ Mapeos de conceptos predefinidos inicializados:', mappings.length);
+}
+
+/**
  * Obtiene conceptos desde localStorage
  */
 export function getConcepts(): Concept[] {

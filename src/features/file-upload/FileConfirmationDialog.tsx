@@ -17,7 +17,9 @@ import {
 } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import WarningIcon from '@mui/icons-material/Warning';
+import ErrorIcon from '@mui/icons-material/Error';
 import type { FileDetectionResult } from '../../types';
+import { isFileTypeUploadedThisMonth, getUploadFileType } from '../../services/localStorage';
 
 interface FileConfirmationDialogProps {
   open: boolean;
@@ -35,6 +37,10 @@ export const FileConfirmationDialog: React.FC<FileConfirmationDialogProps> = ({
   onCancel,
 }) => {
   if (!detection) return null;
+
+  // Verificar si este tipo de archivo ya se cargó este mes
+  const fileType = getUploadFileType(detection.processType, detection.isGastoGeneral);
+  const isAlreadyUploaded = isFileTypeUploadedThisMonth(fileType);
 
   const getProcessTypeLabel = (type: string) => {
     return type === 'apk' ? 'APK (Aparcería)' : 'EPK (Producción/Engorda)';
@@ -65,7 +71,9 @@ export const FileConfirmationDialog: React.FC<FileConfirmationDialogProps> = ({
     <Dialog open={open} onClose={onCancel} maxWidth="md" fullWidth>
       <DialogTitle>
         <Stack direction="row" alignItems="center" spacing={1}>
-          {detection.confidence >= 70 ? (
+          {isAlreadyUploaded ? (
+            <ErrorIcon color="error" />
+          ) : detection.confidence >= 70 ? (
             <CheckCircleIcon color="success" />
           ) : (
             <WarningIcon color="warning" />
@@ -76,8 +84,18 @@ export const FileConfirmationDialog: React.FC<FileConfirmationDialogProps> = ({
 
       <DialogContent>
         <Stack spacing={3}>
+          {/* Alerta de archivo duplicado */}
+          {isAlreadyUploaded && (
+            <Alert severity="error">
+              ⚠️ <strong>Este tipo de archivo ya fue cargado este mes.</strong>
+              <br />
+              Ya existe un archivo de tipo <strong>{getFileTypeLabel(detection.processType, detection.isGastoGeneral)}</strong> cargado.
+              No puedes cargar otro archivo del mismo tipo hasta el próximo mes.
+            </Alert>
+          )}
+
           {/* Alerta según confianza */}
-          {detection.confidence < 70 && (
+          {!isAlreadyUploaded && detection.confidence < 70 && (
             <Alert severity="warning">
               La detección automática tiene confianza {getConfidenceLabel(detection.confidence)}.
               Por favor verifica que la información detectada sea correcta antes de continuar.
@@ -204,8 +222,14 @@ export const FileConfirmationDialog: React.FC<FileConfirmationDialogProps> = ({
         <Button onClick={onCancel} color="inherit">
           Cancelar
         </Button>
-        <Button onClick={onConfirm} variant="contained" color="primary" autoFocus>
-          Confirmar y Guardar
+        <Button 
+          onClick={onConfirm} 
+          variant="contained" 
+          color="success"
+          disabled={isAlreadyUploaded}
+          autoFocus
+        >
+          Continuar
         </Button>
       </DialogActions>
     </Dialog>

@@ -15,11 +15,13 @@ import {
   CloudUpload,
   CheckCircle,
   Error as ErrorIcon,
-  Delete,
+  ArrowForward,
 } from '@mui/icons-material';
 import type { FileDetectionResult } from '../../types';
 import { detectFileType } from './fileParser';
 import { FileConfirmationDialog } from './FileConfirmationDialog';
+import { UploadStatusIndicator } from './UploadStatusIndicator';
+import { areAllFilesUploadedThisMonth, registerMonthlyUpload, getUploadFileType } from '../../services/localStorage';
 
 interface FileUploadProps {
   onFileProcessed: (data: unknown, detection: FileDetectionResult) => void;
@@ -150,6 +152,14 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
   const handleConfirmUpload = () => {
     if (fileState.rawData && fileState.detection) {
       setFileState(prev => ({ ...prev, status: 'success' }));
+      
+      // Registrar archivo en el historial mensual
+      const fileType = getUploadFileType(
+        fileState.detection.processType,
+        fileState.detection.isGastoGeneral
+      );
+      registerMonthlyUpload(fileType, fileState.file?.name || 'archivo.xlsx');
+      
       onFileProcessed(fileState.rawData, fileState.detection);
       onSuccess(
         `Archivo cargado: ${fileState.detection.dataGroup.toUpperCase()} - ${fileState.recordCount} registros`
@@ -235,19 +245,24 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
           • Gastos Generales (GG): Segmento GG de "APARCERÍA EN PROCESO" y "PRODUCCION DE CERDOS EN PROCESO"
         </Alert>
 
-        <Card
-          sx={{
-            border: '2px',
-            borderStyle: isDragging ? 'dashed' : 'solid',
-            borderColor: getStatusColor(),
-            backgroundColor:
-              fileState.status === 'success'
-                ? 'success.50'
-                : fileState.status === 'error'
-                ? 'error.50'
-                : 'background.paper',
-          }}
-        >
+        {/* Indicador de estado de carga del mes */}
+        <UploadStatusIndicator />
+
+        {/* Solo mostrar el input si no se han cargado todos los archivos */}
+        {!areAllFilesUploadedThisMonth() ? (
+          <Card
+            sx={{
+              border: '2px',
+              borderStyle: isDragging ? 'dashed' : 'solid',
+              borderColor: getStatusColor(),
+              backgroundColor:
+                fileState.status === 'success'
+                  ? 'success.50'
+                  : fileState.status === 'error'
+                  ? 'error.50'
+                  : 'background.paper',
+            }}
+          >
           <CardContent>
             <Box
               onDragOver={handleDragOver}
@@ -337,13 +352,13 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
                     )}
                   </Box>
                   <Button
-                    variant="outlined"
-                    color="error"
+                    variant="contained"
+                    color="success"
                     size="small"
-                    startIcon={<Delete />}
+                    startIcon={<ArrowForward />}
                     onClick={handleRemoveFile}
                   >
-                    Remover archivo
+                    Continuar
                   </Button>
                 </Box>
               )}
@@ -362,6 +377,11 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
             </Box>
           </CardContent>
         </Card>
+        ) : (
+          <Alert severity="success" sx={{ textAlign: 'center' }}>
+            🎉 Ya se han cargado todos los archivos del mes. El área de carga estará disponible nuevamente el próximo mes.
+          </Alert>
+        )}
 
         {fileState.status === 'success' && (
           <Alert severity="success" sx={{ mt: 3 }}>

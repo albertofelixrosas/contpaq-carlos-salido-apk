@@ -207,3 +207,20 @@ export interface AccountData {
   code: string;
   name: string;
 }
+
+// ============================================
+// TIPOS PARA HISTORIAL DE CARGA MENSUAL
+// ============================================
+
+export type UploadFileType = 'apk-vueltas' | 'apk-gg' | 'epk-vueltas' | 'epk-gg';
+
+export interface MonthlyUploadEntry {
+  fileType: UploadFileType;
+  uploadedAt: string; // ISO timestamp
+  fileName: string;
+}
+
+export interface MonthlyUploadHistory {
+  month: string; // formato: "YYYY-MM" (ej: "2024-01")
+  uploads: MonthlyUploadEntry[];
+}

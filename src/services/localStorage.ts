@@ -1,4 +1,4 @@
-import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping, DataGroup, AccountCatalogEntry } from '../types';
+import type { ProcessData, ApkRecord, GgRecord, Segment, ProrrateoRecord, Concept, ConceptMapping, TextConceptMapping, DataGroup, AccountCatalogEntry, MonthlyUploadHistory, UploadFileType } from '../types';
 
 /**
  * Servicio para gestión de localStorage
@@ -11,6 +11,7 @@ const STORAGE_KEYS = {
   CONCEPT_MAPPINGS: 'conceptMappings',
   TEXT_CONCEPT_MAPPINGS: 'textConceptMappings',
   ACCOUNT_CATALOG: 'accountCatalog',
+  MONTHLY_UPLOAD_HISTORY: 'monthlyUploadHistory',
 } as const;
 
 // ============================================
@@ -720,4 +721,108 @@ export function registerAccountInCatalog(
 export function clearAccountCatalog(): void {
   localStorage.removeItem(STORAGE_KEYS.ACCOUNT_CATALOG);
   console.log('🗑️ Catálogo de cuentas limpiado');
+}
+
+// ============================================
+// HISTORIAL DE CARGA MENSUAL
+// ============================================
+
+/**
+ * Obtiene el mes actual en formato YYYY-MM
+ */
+function getCurrentMonth(): string {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  return `${year}-${month}`;
+}
+
+/**
+ * Obtiene el historial de cargas del mes actual
+ */
+export function getCurrentMonthHistory(): MonthlyUploadHistory {
+  try {
+    const currentMonth = getCurrentMonth();
+    const stored = localStorage.getItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY);
+    
+    if (!stored) {
+      return { month: currentMonth, uploads: [] };
+    }
+    
+    const history: MonthlyUploadHistory = JSON.parse(stored);
+    
+    // Si el mes almacenado es diferente al actual, resetear
+    if (history.month !== currentMonth) {
+      const newHistory: MonthlyUploadHistory = { month: currentMonth, uploads: [] };
+      localStorage.setItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY, JSON.stringify(newHistory));
+      return newHistory;
+    }
+    
+    return history;
+  } catch (error) {
+    console.error('Error al obtener historial mensual:', error);
+    const currentMonth = getCurrentMonth();
+    return { month: currentMonth, uploads: [] };
+  }
+}
+
+/**
+ * Registra la carga de un archivo en el historial del mes actual
+ */
+export function registerMonthlyUpload(fileType: UploadFileType, fileName: string): void {
+  try {
+    const history = getCurrentMonthHistory();
+    
+    // Verificar si ya existe una carga de este tipo
+    const existingIndex = history.uploads.findIndex(u => u.fileType === fileType);
+    
+    if (existingIndex >= 0) {
+      // Actualizar el registro existente
+      history.uploads[existingIndex] = {
+        fileType,
+        uploadedAt: new Date().toISOString(),
+        fileName,
+      };
+    } else {
+      // Agregar nuevo registro
+      history.uploads.push({
+        fileType,
+        uploadedAt: new Date().toISOString(),
+        fileName,
+      });
+    }
+    
+    localStorage.setItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY, JSON.stringify(history));
+    console.log(`📁 Archivo registrado: ${fileType} - ${fileName}`);
+  } catch (error) {
+    console.error('Error al registrar archivo mensual:', error);
+  }
+}
+
+/**
+ * Verifica si un tipo de archivo ya se cargó este mes
+ */
+export function isFileTypeUploadedThisMonth(fileType: UploadFileType): boolean {
+  const history = getCurrentMonthHistory();
+  return history.uploads.some(u => u.fileType === fileType);
+}
+
+/**
+ * Obtiene el tipo de archivo basado en la detección
+ */
+export function getUploadFileType(processType: 'apk' | 'epk', isGastoGeneral: boolean): UploadFileType {
+  if (processType === 'apk') {
+    return isGastoGeneral ? 'apk-gg' : 'apk-vueltas';
+  } else {
+    return isGastoGeneral ? 'epk-gg' : 'epk-vueltas';
+  }
+}
+
+/**
+ * Verifica si ya se cargaron los 4 tipos de archivos este mes
+ */
+export function areAllFilesUploadedThisMonth(): boolean {
+  const history = getCurrentMonthHistory();
+  const requiredTypes: UploadFileType[] = ['apk-vueltas', 'apk-gg', 'epk-vueltas', 'epk-gg'];
+  return requiredTypes.every(type => history.uploads.some(u => u.fileType === type));
 }

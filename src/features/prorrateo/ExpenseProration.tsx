@@ -35,7 +35,7 @@ import { Snackbar } from '@mui/material';
  * Muestra 2 secciones: APK y EPK por separado
  */
 export const ExpenseProration = () => {
-  const { apkGgData, epkGgData, segments } = useAppContext();
+  const { apkGgData, epkGgData, apkSegments, epkSegments } = useAppContext();
   
   const { showSuccess, showError, showWarning, notification, hideNotification } = useNotification();
   
@@ -49,21 +49,6 @@ export const ExpenseProration = () => {
   const [isBreakdownModalOpen, setIsBreakdownModalOpen] = useState(false);
   const [isConceptBreakdownModalOpen, setIsConceptBreakdownModalOpen] = useState(false);
   const [activeSection, setActiveSection] = useState<'apk' | 'epk'>('apk');
-
-  // Filtrar segmentos por tipo (APK o EPK) - EXCLUIR GG
-  const apkSegments = useMemo(() => {
-    return segments.filter(seg => {
-      const segUpper = seg.segment.toUpperCase();
-      return segUpper.includes('APK') && !segUpper.includes('GG');
-    });
-  }, [segments]);
-
-  const epkSegments = useMemo(() => {
-    return segments.filter(seg => {
-      const segUpper = seg.segment.toUpperCase();
-      return segUpper.includes('EPK') && !segUpper.includes('GG');
-    });
-  }, [segments]);
 
   // Obtener datos y segmentos según sección activa
   const getActiveGgData = () => activeSection === 'apk' ? apkGgData : epkGgData;

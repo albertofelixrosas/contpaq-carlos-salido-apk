@@ -722,24 +722,26 @@ export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }:
             </Select>
           </FormControl>
 
-          {/* Filtro de Vuelta/Segmento */}
-          <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}>
-            <InputLabel>{type === 'gg' ? 'Segmento' : type === 'apk' ? 'Vuelta' : 'Segmento'}</InputLabel>
-            <Select
-              value={vueltaFilter}
-              onChange={(e) => setVueltaFilter(e.target.value)}
-              label={type === 'gg' ? 'Segmento' : type === 'apk' ? 'Vuelta' : 'Segmento'}
-            >
-              <MenuItem value="">
-                <em>Todos</em>
-              </MenuItem>
-              {uniqueVueltas.map((vuelta) => (
-                <MenuItem key={vuelta} value={vuelta}>
-                  {vuelta}
+          {/* Filtro de Vuelta/Segmento - Solo para APK y EPK, no para GG */}
+          {type !== 'gg' && (
+            <FormControl size="small" sx={{ flexGrow: 1, minWidth: { xs: '100%', sm: 200 } }}>
+              <InputLabel>{type === 'apk' ? 'Vuelta' : 'Segmento'}</InputLabel>
+              <Select
+                value={vueltaFilter}
+                onChange={(e) => setVueltaFilter(e.target.value)}
+                label={type === 'apk' ? 'Vuelta' : 'Segmento'}
+              >
+                <MenuItem value="">
+                  <em>Todos</em>
                 </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
+                {uniqueVueltas.map((vuelta) => (
+                  <MenuItem key={vuelta} value={vuelta}>
+                    {vuelta}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          )}
 
           {/* Botón Limpiar Filtros */}
           {(proveedorFilter || conceptoFilter || vueltaFilter) && (

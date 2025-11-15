@@ -106,6 +106,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setGgData([...data as GgRecord[], ...epkGgData]);
       } else {
         setApkData(data as ApkRecord[]);
+        // Actualizar segmentos de APK
+        const newSegments = Array.from(segmentNames).map(seg => ({ 
+          segment: seg, 
+          count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length 
+        }));
+        setApkSegments(newSegments);
       }
     } else if (group === 'epk') {
       if (isGG) {
@@ -114,6 +120,12 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         setGgData([...apkGgData, ...data as GgRecord[]]);
       } else {
         setEpkData(data as ApkRecord[]);
+        // Actualizar segmentos de EPK
+        const newSegments = Array.from(segmentNames).map(seg => ({ 
+          segment: seg, 
+          count: (data as ApkRecord[]).filter(r => r.vuelta === seg).length 
+        }));
+        setEpkSegments(newSegments);
       }
     }
 

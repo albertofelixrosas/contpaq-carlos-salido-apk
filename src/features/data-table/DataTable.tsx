@@ -57,6 +57,8 @@ interface DataTableProps {
   data: ApkRecord[] | GgRecord[];
   type: DataType;
   dataGroup: DataGroup; // Requerido: para saber dónde guardar cambios
+  selectedMonth?: string; // Filtro de mes compartido
+  selectedYear?: string;  // Filtro de año compartido
   onEdit?: (record: ApkRecord | GgRecord) => void;
   onDelete?: (id: number) => void;
   onExport?: () => void;
@@ -66,7 +68,7 @@ interface DataTableProps {
  * Tabla de datos con TanStack Table
  * Incluye ordenamiento, filtrado, paginación y acciones
  */
-export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }: DataTableProps) => {
+export const DataTable = ({ data, type, dataGroup, selectedMonth = '', selectedYear = '', onEdit, onDelete, onExport }: DataTableProps) => {
   const { setDataByGroup } = useAppContext();
   const { notification, showSuccess, showError, hideNotification } = useNotification();
   const [sorting, setSorting] = useState<SortingState>([]);
@@ -77,11 +79,7 @@ export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }:
     pageSize: 10,
   });
 
-  // Estados para filtro de período (mes/año)
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [selectedYear, setSelectedYear] = useState<string>('');
-
-  // Estados para filtros personalizados
+  // Estados para filtros personalizados (sin mes/año ya que vienen por props)
   const [proveedorFilter, setProveedorFilter] = useState('');
   const [conceptoFilter, setConceptoFilter] = useState('');
   const [vueltaFilter, setVueltaFilter] = useState('');
@@ -108,17 +106,6 @@ export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }:
       return matchesMonth && matchesYear;
     });
   }, [data, selectedMonth, selectedYear]);
-
-  // Extraer meses y años únicos disponibles en los datos
-  const availableMonths = useMemo(() => {
-    const months = new Set(data.map(record => record.mes).filter(Boolean));
-    return Array.from(months).sort();
-  }, [data]);
-
-  const availableYears = useMemo(() => {
-    const years = new Set(data.map(record => record.año).filter(Boolean));
-    return Array.from(years).sort();
-  }, [data]);
 
   // Extraer valores únicos para los selects (basado en datos filtrados por período)
   const uniqueConceptos = useMemo(() => {
@@ -595,91 +582,6 @@ export const DataTable = ({ data, type, dataGroup, onEdit, onDelete, onExport }:
               ({table.getFilteredRowModel().rows.length} registros)
             </Typography>
           </Box>
-        </Stack>
-      </Paper>
-
-      {/* Filtro de Período (Mes/Año) - FILTRO PRINCIPAL */}
-      <Paper sx={{ padding: 2, mb: 2, backgroundColor: 'warning.50', border: '2px solid', borderColor: 'warning.main' }}>
-        <Stack direction="row" spacing={1} alignItems="center" mb={2}>
-          <FilterList color="warning" />
-          <Typography variant="subtitle1" fontWeight="bold" color="warning.dark">
-            Filtro de Período (Mes/Año)
-          </Typography>
-          <Chip 
-            label="Filtro Principal" 
-            size="small" 
-            color="warning" 
-            sx={{ fontWeight: 'bold' }}
-          />
-        </Stack>
-        
-        <Typography variant="caption" color="text.secondary" display="block" mb={2}>
-          Este filtro se aplica primero. Los cambios masivos solo afectarán registros dentro del período seleccionado.
-        </Typography>
-
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
-          {/* Selector de Año */}
-          <FormControl fullWidth size="small">
-            <InputLabel>Año</InputLabel>
-            <Select
-              value={selectedYear}
-              onChange={(e) => setSelectedYear(e.target.value)}
-              label="Año"
-            >
-              <MenuItem value="">
-                <em>Todos los años</em>
-              </MenuItem>
-              {availableYears.map(year => (
-                <MenuItem key={year} value={year}>
-                  {year}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Selector de Mes */}
-          <FormControl fullWidth size="small">
-            <InputLabel>Mes</InputLabel>
-            <Select
-              value={selectedMonth}
-              onChange={(e) => setSelectedMonth(e.target.value)}
-              label="Mes"
-            >
-              <MenuItem value="">
-                <em>Todos los meses</em>
-              </MenuItem>
-              {availableMonths.map(month => (
-                <MenuItem key={month} value={month}>
-                  {month}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          {/* Botón para limpiar filtro de período */}
-          {(selectedMonth || selectedYear) && (
-            <Button 
-              variant="outlined" 
-              color="warning"
-              onClick={() => {
-                setSelectedMonth('');
-                setSelectedYear('');
-              }}
-              sx={{ minWidth: '120px', whiteSpace: 'nowrap' }}
-            >
-              Limpiar Período
-            </Button>
-          )}
-
-          {/* Indicador de registros filtrados */}
-          {(selectedMonth || selectedYear) && (
-            <Chip
-              label={`${filteredDataByPeriod.length} de ${data.length} registros`}
-              color="warning"
-              variant="outlined"
-              size="small"
-            />
-          )}
         </Stack>
       </Paper>
 

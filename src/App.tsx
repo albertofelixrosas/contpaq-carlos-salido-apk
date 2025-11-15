@@ -1,5 +1,6 @@
 import { ThemeProvider } from '@mui/material/styles';
-import { CssBaseline, Box, Typography, Tabs, Tab } from '@mui/material';
+import { CssBaseline, Box, Typography, Tabs, Tab, Paper, Stack, FormControl, InputLabel, Select, MenuItem, Button, Chip } from '@mui/material';
+import { FilterList } from '@mui/icons-material';
 import { theme } from './theme/theme';
 import { ErrorBoundary } from './components/Feedback/ErrorBoundary';
 import { AppLayout } from './components/Layout/AppLayout';
@@ -35,6 +36,10 @@ function AppContent() {
   
   // Estado para tabs de la sección de Tabla
   const [dataTableTab, setDataTableTab] = useState<'apk' | 'epk'>('apk');
+  
+  // Estados para filtro de período compartido
+  const [sharedMonth, setSharedMonth] = useState<string>('');
+  const [sharedYear, setSharedYear] = useState<string>('');
   
   // Combinar todos los datos para conceptos únicos
   const allData = [...apkData, ...epkData];
@@ -131,6 +136,85 @@ function AppContent() {
                   />
                 </Tabs>
 
+                {/* Filtro de Período Compartido */}
+                <Paper sx={{ padding: 2, mb: 3, backgroundColor: 'warning.50', border: '2px solid', borderColor: 'warning.main' }}>
+                  <Stack direction="row" spacing={1} alignItems="center" mb={2}>
+                    <FilterList color="warning" />
+                    <Typography variant="subtitle1" fontWeight="bold" color="warning.dark">
+                      Filtro de Período (Compartido)
+                    </Typography>
+                    <Chip 
+                      label="Aplica a todas las tablas" 
+                      size="small" 
+                      color="warning" 
+                      sx={{ fontWeight: 'bold' }}
+                    />
+                  </Stack>
+                  
+                  <Typography variant="caption" color="text.secondary" display="block" mb={2}>
+                    Este filtro se aplica a todas las tablas mostradas. Selecciona un período para filtrar los datos.
+                  </Typography>
+
+                  <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems="center">
+                    {/* Selector de Año */}
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Año</InputLabel>
+                      <Select
+                        value={sharedYear}
+                        onChange={(e) => setSharedYear(e.target.value)}
+                        label="Año"
+                      >
+                        <MenuItem value="">
+                          <em>Todos los años</em>
+                        </MenuItem>
+                        {(() => {
+                          const currentData = dataTableTab === 'apk' ? [...apkData, ...apkGgData] : [...epkData, ...epkGgData];
+                          const years = new Set(currentData.map(record => record.año).filter(Boolean));
+                          return Array.from(years).sort().map(year => (
+                            <MenuItem key={year} value={year}>{year}</MenuItem>
+                          ));
+                        })()}
+                      </Select>
+                    </FormControl>
+
+                    {/* Selector de Mes */}
+                    <FormControl fullWidth size="small">
+                      <InputLabel>Mes</InputLabel>
+                      <Select
+                        value={sharedMonth}
+                        onChange={(e) => setSharedMonth(e.target.value)}
+                        label="Mes"
+                      >
+                        <MenuItem value="">
+                          <em>Todos los meses</em>
+                        </MenuItem>
+                        {(() => {
+                          const currentData = dataTableTab === 'apk' ? [...apkData, ...apkGgData] : [...epkData, ...epkGgData];
+                          const months = new Set(currentData.map(record => record.mes).filter(Boolean));
+                          return Array.from(months).sort().map(month => (
+                            <MenuItem key={month} value={month}>{month}</MenuItem>
+                          ));
+                        })()}
+                      </Select>
+                    </FormControl>
+
+                    {/* Botón para limpiar filtro de período */}
+                    {(sharedMonth || sharedYear) && (
+                      <Button 
+                        variant="outlined" 
+                        color="warning"
+                        onClick={() => {
+                          setSharedMonth('');
+                          setSharedYear('');
+                        }}
+                        sx={{ minWidth: '120px', whiteSpace: 'nowrap' }}
+                      >
+                        Limpiar Período
+                      </Button>
+                    )}
+                  </Stack>
+                </Paper>
+
                 {/* Contenido según tab activo */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                   {dataTableTab === 'apk' ? (
@@ -144,6 +228,8 @@ function AppContent() {
                             data={apkData}
                             type="apk"
                             dataGroup="apk"
+                            selectedMonth={sharedMonth}
+                            selectedYear={sharedYear}
                             onEdit={(record) => console.log('Edit APK:', record)}
                             onDelete={(id) => console.log('Delete APK:', id)}
                             onExport={() => console.log('Export APK')}
@@ -160,6 +246,8 @@ function AppContent() {
                             data={apkGgData}
                             type="gg"
                             dataGroup="apk"
+                            selectedMonth={sharedMonth}
+                            selectedYear={sharedYear}
                             onEdit={(record) => console.log('Edit APK-GG:', record)}
                             onDelete={(id) => console.log('Delete APK-GG:', id)}
                             onExport={() => console.log('Export APK-GG')}
@@ -186,6 +274,8 @@ function AppContent() {
                             data={epkData}
                             type="epk"
                             dataGroup="epk"
+                            selectedMonth={sharedMonth}
+                            selectedYear={sharedYear}
                             onEdit={(record) => console.log('Edit EPK:', record)}
                             onDelete={(id) => console.log('Delete EPK:', id)}
                             onExport={() => console.log('Export EPK')}
@@ -202,6 +292,8 @@ function AppContent() {
                             data={epkGgData}
                             type="gg"
                             dataGroup="epk"
+                            selectedMonth={sharedMonth}
+                            selectedYear={sharedYear}
                             onEdit={(record) => console.log('Edit EPK-GG:', record)}
                             onDelete={(id) => console.log('Delete EPK-GG:', id)}
                             onExport={() => console.log('Export EPK-GG')}

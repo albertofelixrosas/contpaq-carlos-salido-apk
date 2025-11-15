@@ -232,9 +232,7 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
           <br />
           • EPK (Producción/Engorda): Códigos 133-xxx o texto "PRODUCCION DE CERDOS EN PROCESO"
           <br />
-          • Vueltas/Segmentos: Detecta líneas con "Segmento:"
-          <br />
-          • Gastos Generales (GG): Sin líneas de segmentos
+          • Gastos Generales (GG): Segmento GG de "APARCERÍA EN PROCESO" y "PRODUCCION DE CERDOS EN PROCESO"
         </Alert>
 
         <Card

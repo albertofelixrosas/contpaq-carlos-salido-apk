@@ -19,8 +19,7 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const history = getCurrentMonthHistory();
+  const [history, setHistory] = useState(() => getCurrentMonthHistory());
 
   // Función para verificar si un tipo de archivo ya se cargó
   const isUploaded = (fileType: UploadFileType): boolean => {
@@ -38,7 +37,7 @@ export const UploadStatusIndicator = () => {
     if (window.confirm('¿Estás seguro de que deseas eliminar este archivo? Podrás subir uno nuevo después.')) {
       try {
         deleteMonthlyUpload(fileType);
-        setRefreshKey(prev => prev + 1); // Forzar re-render
+        setHistory(getCurrentMonthHistory()); // Actualizar estado con datos actualizados
       } catch (error) {
         console.error('Error al eliminar archivo:', error);
         alert('Error al eliminar el archivo. Por favor, intenta de nuevo.');
@@ -70,7 +69,7 @@ export const UploadStatusIndicator = () => {
   const uploadedCount = FILE_TYPES_CONFIG.filter((config) => isUploaded(config.type)).length;
 
   return (
-    <Card sx={{ mb: 3 }} key={refreshKey}>
+    <Card sx={{ mb: 3 }}>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>

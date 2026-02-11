@@ -40,7 +40,7 @@ export const UploadStatusIndicator = () => {
 
   // Manejar la eliminación de un archivo
   const handleDelete = (fileType: UploadFileType) => {
-    const fileName = getFileName(fileType);
+    const fileName = getFileName(fileType) || 'archivo';
     showConfirm({
       title: 'Eliminar archivo',
       message: `¿Está seguro de que desea eliminar el archivo "${fileName}"?`,
@@ -164,7 +164,7 @@ export const UploadStatusIndicator = () => {
                     title="Eliminar archivo"
                     sx={{
                       '&:hover': {
-                        backgroundColor: 'error.light',
+                        backgroundColor: 'rgba(211, 47, 47, 0.08)',
                       },
                     }}
                   >

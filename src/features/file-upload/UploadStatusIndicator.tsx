@@ -3,6 +3,10 @@ import { CheckCircle, Cancel, Delete } from '@mui/icons-material';
 import { getCurrentMonthHistory, deleteMonthlyUpload } from '../../services/localStorage';
 import type { UploadFileType } from '../../types';
 import { useState } from 'react';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { useNotification } from '../../hooks/useNotification';
+import { ConfirmDialog } from '../../components/Feedback/ConfirmDialog';
+import { Notification } from '../../components/Feedback/Notification';
 
 /**
  * Configuración de los 4 tipos de archivos esperados
@@ -19,8 +23,9 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
-  const [refreshKey, setRefreshKey] = useState(0);
-  const history = getCurrentMonthHistory();
+  const [history, setHistory] = useState(() => getCurrentMonthHistory());
+  const { dialog, showConfirm, hideConfirm, handleConfirm } = useConfirmDialog();
+  const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   // Función para verificar si un tipo de archivo ya se cargó
   const isUploaded = (fileType: UploadFileType): boolean => {
@@ -35,16 +40,25 @@ export const UploadStatusIndicator = () => {
 
   // Manejar la eliminación de un archivo
   const handleDelete = (fileType: UploadFileType) => {
-    if (window.confirm(`¿Está seguro de que desea eliminar el archivo ${getFileName(fileType)}?`)) {
-      try {
-        deleteMonthlyUpload(fileType);
-        setRefreshKey(prev => prev + 1); // Force re-render
-        console.log(`✅ Archivo eliminado correctamente: ${fileType}`);
-      } catch (error) {
-        console.error('Error al eliminar el archivo:', error);
-        alert('Error al eliminar el archivo. Por favor, intente nuevamente.');
-      }
-    }
+    const fileName = getFileName(fileType);
+    showConfirm({
+      title: 'Eliminar archivo',
+      message: `¿Está seguro de que desea eliminar el archivo "${fileName}"?`,
+      confirmText: 'Eliminar',
+      cancelText: 'Cancelar',
+      severity: 'error',
+      onConfirm: () => {
+        try {
+          deleteMonthlyUpload(fileType);
+          setHistory(getCurrentMonthHistory()); // Update state with fresh data
+          showSuccess(`Archivo "${fileName}" eliminado correctamente`);
+          console.log(`✅ Archivo eliminado correctamente: ${fileType}`);
+        } catch (error) {
+          console.error('Error al eliminar el archivo:', error);
+          showError('Error al eliminar el archivo. Por favor, intente nuevamente.');
+        }
+      },
+    });
   };
 
   // Formatear fecha del mes actual
@@ -71,7 +85,7 @@ export const UploadStatusIndicator = () => {
   const uploadedCount = FILE_TYPES_CONFIG.filter((config) => isUploaded(config.type)).length;
 
   return (
-    <Card sx={{ mb: 3 }} key={refreshKey}>
+    <Card sx={{ mb: 3 }}>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
@@ -170,6 +184,9 @@ export const UploadStatusIndicator = () => {
           </Box>
         )}
       </CardContent>
+
+      <ConfirmDialog dialog={dialog} onConfirm={handleConfirm} onCancel={hideConfirm} />
+      <Notification notification={notification} onClose={hideNotification} />
     </Card>
   );
 };

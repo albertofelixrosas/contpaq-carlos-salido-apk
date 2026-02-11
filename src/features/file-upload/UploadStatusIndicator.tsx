@@ -1,6 +1,7 @@
-import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
-import { getCurrentMonthHistory } from '../../services/localStorage';
+import { useState } from 'react';
+import { Box, Card, CardContent, Typography, Chip, Stack, IconButton, Tooltip } from '@mui/material';
+import { CheckCircle, Cancel, Delete } from '@mui/icons-material';
+import { getCurrentMonthHistory, deleteMonthlyUpload } from '../../services/localStorage';
 import type { UploadFileType } from '../../types';
 
 /**
@@ -18,6 +19,7 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
   const history = getCurrentMonthHistory();
 
   // Función para verificar si un tipo de archivo ya se cargó
@@ -29,6 +31,19 @@ export const UploadStatusIndicator = () => {
   const getFileName = (fileType: UploadFileType): string | null => {
     const upload = history.uploads.find((u) => u.fileType === fileType);
     return upload ? upload.fileName : null;
+  };
+
+  // Manejar eliminación de archivo
+  const handleDeleteFile = (fileType: UploadFileType) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este archivo? Podrás subir uno nuevo después.')) {
+      try {
+        deleteMonthlyUpload(fileType);
+        setRefreshKey(prev => prev + 1); // Forzar re-render
+      } catch (error) {
+        console.error('Error al eliminar archivo:', error);
+        alert('Error al eliminar el archivo. Por favor, intenta de nuevo.');
+      }
+    }
   };
 
   // Formatear fecha del mes actual
@@ -55,7 +70,7 @@ export const UploadStatusIndicator = () => {
   const uploadedCount = FILE_TYPES_CONFIG.filter((config) => isUploaded(config.type)).length;
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card sx={{ mb: 3 }} key={refreshKey}>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
@@ -125,6 +140,22 @@ export const UploadStatusIndicator = () => {
                   color={uploaded ? 'success' : 'error'}
                   variant="outlined"
                 />
+                {uploaded && (
+                  <Tooltip title="Eliminar archivo para subir uno nuevo">
+                    <IconButton
+                      onClick={() => handleDeleteFile(config.type)}
+                      size="small"
+                      sx={{
+                        color: 'error.main',
+                        '&:hover': {
+                          backgroundColor: 'error.50',
+                        },
+                      }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             );
           })}

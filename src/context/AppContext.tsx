@@ -20,6 +20,8 @@ import {
   initializePredefinedConceptMappings,
   initializePredefinedTextMappings,
   initializeProcessData,
+  clearMonthlyUploadHistory,
+  clearAccountCatalog,
 } from '../services/localStorage';
 
 interface AppContextType {
@@ -44,6 +46,7 @@ interface AppContextType {
   loadData: () => void;
   clearData: () => void;
   clearGroupData: (group: DataGroup) => void;
+  clearUploadData: () => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -229,6 +232,23 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
     setSegmentsState([...apkSegments, ...epkSegments]);
   }, [apkSegments, epkSegments]);
 
+  const clearUploadData = useCallback(() => {
+    const emptyData = initializeProcessData();
+    saveDataByGroup('apk', emptyData);
+    saveDataByGroup('epk', emptyData);
+    clearMonthlyUploadHistory();
+    clearAccountCatalog();
+
+    setApkData([]);
+    setApkGgData([]);
+    setEpkData([]);
+    setEpkGgData([]);
+    setGgData([]);
+    setSegmentsState([]);
+    setApkSegments([]);
+    setEpkSegments([]);
+  }, []);
+
   return (
     <AppContext.Provider
       value={{
@@ -248,6 +268,7 @@ export const AppProvider = ({ children }: { children: ReactNode }) => {
         loadData,
         clearData,
         clearGroupData,
+        clearUploadData,
       }}
     >
       {children}

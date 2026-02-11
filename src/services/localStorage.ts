@@ -800,6 +800,18 @@ export function registerMonthlyUpload(fileType: UploadFileType, fileName: string
 }
 
 /**
+ * Limpia el historial de cargas del mes
+ */
+export function clearMonthlyUploadHistory(): void {
+  try {
+    localStorage.removeItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY);
+    console.log('🗑️ Historial mensual de cargas limpiado');
+  } catch (error) {
+    console.error('Error al limpiar historial mensual:', error);
+  }
+}
+
+/**
  * Verifica si un tipo de archivo ya se cargó este mes
  */
 export function isFileTypeUploadedThisMonth(fileType: UploadFileType): boolean {

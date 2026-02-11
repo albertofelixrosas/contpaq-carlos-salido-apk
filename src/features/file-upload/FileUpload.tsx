@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import {
   Box,
   Paper,
@@ -16,12 +16,16 @@ import {
   CheckCircle,
   Error as ErrorIcon,
   ArrowForward,
+  DeleteSweep,
 } from '@mui/icons-material';
 import type { FileDetectionResult } from '../../types';
 import { detectFileType } from './fileParser';
 import { FileConfirmationDialog } from './FileConfirmationDialog';
 import { UploadStatusIndicator } from './UploadStatusIndicator';
 import { areAllFilesUploadedThisMonth, registerMonthlyUpload, getUploadFileType } from '../../services/localStorage';
+import { useAppContext } from '../../context/AppContext';
+import { useConfirmDialog } from '../../hooks/useConfirmDialog';
+import { ConfirmDialog } from '../../components/Feedback/ConfirmDialog';
 
 interface FileUploadProps {
   onFileProcessed: (data: unknown, detection: FileDetectionResult) => void;
@@ -49,6 +53,9 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
     status: 'idle',
   });
   const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const { clearUploadData } = useAppContext();
+  const { dialog, showConfirm, hideConfirm, handleConfirm } = useConfirmDialog();
 
   const processFile = async (file: File) => {
     setFileState({ file, status: 'processing' });
@@ -178,6 +185,26 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
     setFileState({ file: null, status: 'idle' });
   };
 
+  const handleResetUploadData = () => {
+    showConfirm({
+      title: 'Restablecer datos cargados',
+      message:
+        'Esto borrara todos los datos cargados y el historial mensual de archivos. Deberas subirlos nuevamente. Esta accion no se puede deshacer.',
+      confirmText: 'Borrar datos',
+      cancelText: 'Cancelar',
+      severity: 'error',
+      onConfirm: () => {
+        clearUploadData();
+        setFileState({ file: null, status: 'idle' });
+        setIsDragging(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+        onSuccess('Datos en cache borrados. Puedes volver a cargar archivos.');
+      },
+    });
+  };
+
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -248,6 +275,17 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
         {/* Indicador de estado de carga del mes */}
         <UploadStatusIndicator />
 
+        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: 3 }}>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteSweep />}
+            onClick={handleResetUploadData}
+          >
+            Borrar datos cargados
+          </Button>
+        </Box>
+
         {/* Solo mostrar el input si no se han cargado todos los archivos */}
         {!areAllFilesUploadedThisMonth() ? (
           <Card
@@ -294,7 +332,13 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
                   </Typography>
                   <Button variant="contained" component="label" startIcon={<Upload />}>
                     Seleccionar Archivo
-                    <input type="file" hidden accept=".xls,.xlsx" onChange={handleFileChange} />
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      hidden
+                      accept=".xls,.xlsx"
+                      onChange={handleFileChange}
+                    />
                   </Button>
                   <Typography variant="caption" color="text.secondary" display="block" sx={{ mt: 2 }}>
                     Tamaño máximo: 5MB
@@ -400,6 +444,8 @@ export const FileUpload = ({ onFileProcessed, onError, onSuccess }: FileUploadPr
         onConfirm={handleConfirmUpload}
         onCancel={handleCancelUpload}
       />
+
+      <ConfirmDialog dialog={dialog} onConfirm={handleConfirm} onCancel={hideConfirm} />
     </Box>
   );
 };

@@ -800,6 +800,24 @@ export function registerMonthlyUpload(fileType: UploadFileType, fileName: string
 }
 
 /**
+ * Elimina la carga de un archivo del historial del mes actual
+ */
+export function deleteMonthlyUpload(fileType: UploadFileType): void {
+  try {
+    const history = getCurrentMonthHistory();
+    
+    // Filtrar para eliminar el archivo del tipo especificado
+    history.uploads = history.uploads.filter(u => u.fileType !== fileType);
+    
+    localStorage.setItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY, JSON.stringify(history));
+    console.log(`🗑️ Archivo eliminado: ${fileType}`);
+  } catch (error) {
+    console.error('Error al eliminar archivo mensual:', error);
+    throw new Error('No se pudo eliminar el archivo');
+  }
+}
+
+/**
  * Verifica si un tipo de archivo ya se cargó este mes
  */
 export function isFileTypeUploadedThisMonth(fileType: UploadFileType): boolean {

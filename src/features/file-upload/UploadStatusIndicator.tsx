@@ -1,7 +1,10 @@
-import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
-import { getCurrentMonthHistory } from '../../services/localStorage';
+import { Box, Card, CardContent, Typography, Chip, Stack, IconButton } from '@mui/material';
+import { CheckCircle, Cancel, Delete } from '@mui/icons-material';
+import { getCurrentMonthHistory, deleteMonthlyUpload } from '../../services/localStorage';
 import type { UploadFileType } from '../../types';
+import { useState } from 'react';
+import { useNotification } from '../../hooks/useNotification';
+import { Notification } from '../../components/Feedback/Notification';
 
 /**
  * Configuración de los 4 tipos de archivos esperados
@@ -18,7 +21,8 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
-  const history = getCurrentMonthHistory();
+  const [history, setHistory] = useState(() => getCurrentMonthHistory());
+  const { notification, showSuccess, showError, hideNotification } = useNotification();
 
   // Función para verificar si un tipo de archivo ya se cargó
   const isUploaded = (fileType: UploadFileType): boolean => {
@@ -29,6 +33,21 @@ export const UploadStatusIndicator = () => {
   const getFileName = (fileType: UploadFileType): string | null => {
     const upload = history.uploads.find((u) => u.fileType === fileType);
     return upload ? upload.fileName : null;
+  };
+
+  // Manejar la eliminación de un archivo
+  const handleDelete = (fileType: UploadFileType) => {
+    const fileName = getFileName(fileType) || 'archivo';
+    
+    try {
+      deleteMonthlyUpload(fileType);
+      setHistory(getCurrentMonthHistory()); // Update state with fresh data
+      showSuccess(`Archivo "${fileName}" eliminado correctamente`);
+      console.log(`✅ Archivo eliminado correctamente: ${fileType}`);
+    } catch (error) {
+      console.error('Error al eliminar el archivo:', error);
+      showError('Error al eliminar el archivo. Por favor, intente nuevamente.');
+    }
   };
 
   // Formatear fecha del mes actual
@@ -125,6 +144,22 @@ export const UploadStatusIndicator = () => {
                   color={uploaded ? 'success' : 'error'}
                   variant="outlined"
                 />
+                {uploaded && (
+                  <IconButton
+                    onClick={() => handleDelete(config.type)}
+                    size="small"
+                    color="error"
+                    aria-label="Eliminar archivo"
+                    title="Eliminar archivo"
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'rgba(211, 47, 47, 0.08)',
+                      },
+                    }}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             );
           })}
@@ -138,6 +173,8 @@ export const UploadStatusIndicator = () => {
           </Box>
         )}
       </CardContent>
+
+      <Notification notification={notification} onClose={hideNotification} />
     </Card>
   );
 };

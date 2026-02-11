@@ -1,7 +1,8 @@
-import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
-import { getCurrentMonthHistory } from '../../services/localStorage';
+import { Box, Card, CardContent, Typography, Chip, Stack, IconButton } from '@mui/material';
+import { CheckCircle, Cancel, Delete } from '@mui/icons-material';
+import { getCurrentMonthHistory, deleteMonthlyUpload } from '../../services/localStorage';
 import type { UploadFileType } from '../../types';
+import { useState } from 'react';
 
 /**
  * Configuración de los 4 tipos de archivos esperados
@@ -18,6 +19,7 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
+  const [refreshKey, setRefreshKey] = useState(0);
   const history = getCurrentMonthHistory();
 
   // Función para verificar si un tipo de archivo ya se cargó
@@ -29,6 +31,20 @@ export const UploadStatusIndicator = () => {
   const getFileName = (fileType: UploadFileType): string | null => {
     const upload = history.uploads.find((u) => u.fileType === fileType);
     return upload ? upload.fileName : null;
+  };
+
+  // Manejar la eliminación de un archivo
+  const handleDelete = (fileType: UploadFileType) => {
+    if (window.confirm(`¿Está seguro de que desea eliminar el archivo ${getFileName(fileType)}?`)) {
+      try {
+        deleteMonthlyUpload(fileType);
+        setRefreshKey(prev => prev + 1); // Force re-render
+        console.log(`✅ Archivo eliminado correctamente: ${fileType}`);
+      } catch (error) {
+        console.error('Error al eliminar el archivo:', error);
+        alert('Error al eliminar el archivo. Por favor, intente nuevamente.');
+      }
+    }
   };
 
   // Formatear fecha del mes actual
@@ -55,7 +71,7 @@ export const UploadStatusIndicator = () => {
   const uploadedCount = FILE_TYPES_CONFIG.filter((config) => isUploaded(config.type)).length;
 
   return (
-    <Card sx={{ mb: 3 }}>
+    <Card sx={{ mb: 3 }} key={refreshKey}>
       <CardContent>
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 2 }}>
           <Typography variant="h6" sx={{ fontSize: { xs: '1rem', sm: '1.25rem' } }}>
@@ -125,6 +141,22 @@ export const UploadStatusIndicator = () => {
                   color={uploaded ? 'success' : 'error'}
                   variant="outlined"
                 />
+                {uploaded && (
+                  <IconButton
+                    onClick={() => handleDelete(config.type)}
+                    size="small"
+                    color="error"
+                    aria-label="Eliminar archivo"
+                    title="Eliminar archivo"
+                    sx={{
+                      '&:hover': {
+                        backgroundColor: 'error.light',
+                      },
+                    }}
+                  >
+                    <Delete fontSize="small" />
+                  </IconButton>
+                )}
               </Box>
             );
           })}

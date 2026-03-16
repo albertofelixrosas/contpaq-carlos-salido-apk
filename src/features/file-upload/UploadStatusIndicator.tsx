@@ -1,6 +1,7 @@
-import { Box, Card, CardContent, Typography, Chip, Stack } from '@mui/material';
-import { CheckCircle, Cancel } from '@mui/icons-material';
-import { getCurrentMonthHistory } from '../../services/localStorage';
+import { useState } from 'react';
+import { Box, Card, CardContent, Typography, Chip, Stack, IconButton, Tooltip } from '@mui/material';
+import { CheckCircle, Cancel, Delete } from '@mui/icons-material';
+import { getCurrentMonthHistory, deleteMonthlyUpload } from '../../services/localStorage';
 import type { UploadFileType } from '../../types';
 
 /**
@@ -18,7 +19,7 @@ const FILE_TYPES_CONFIG: { type: UploadFileType; label: string; color: 'primary'
  * Indica cuáles archivos ya se han subido (verde) y cuáles faltan (rojo)
  */
 export const UploadStatusIndicator = () => {
-  const history = getCurrentMonthHistory();
+  const [history, setHistory] = useState(() => getCurrentMonthHistory());
 
   // Función para verificar si un tipo de archivo ya se cargó
   const isUploaded = (fileType: UploadFileType): boolean => {
@@ -29,6 +30,19 @@ export const UploadStatusIndicator = () => {
   const getFileName = (fileType: UploadFileType): string | null => {
     const upload = history.uploads.find((u) => u.fileType === fileType);
     return upload ? upload.fileName : null;
+  };
+
+  // Manejar eliminación de archivo
+  const handleDeleteFile = (fileType: UploadFileType) => {
+    if (window.confirm('¿Estás seguro de que deseas eliminar este archivo? Podrás subir uno nuevo después.')) {
+      try {
+        deleteMonthlyUpload(fileType);
+        setHistory(getCurrentMonthHistory()); // Actualizar estado con datos actualizados
+      } catch (error) {
+        console.error('Error al eliminar archivo:', error);
+        alert('Error al eliminar el archivo. Por favor, intenta de nuevo.');
+      }
+    }
   };
 
   // Formatear fecha del mes actual
@@ -125,6 +139,22 @@ export const UploadStatusIndicator = () => {
                   color={uploaded ? 'success' : 'error'}
                   variant="outlined"
                 />
+                {uploaded && (
+                  <Tooltip title="Eliminar archivo para subir uno nuevo">
+                    <IconButton
+                      onClick={() => handleDeleteFile(config.type)}
+                      size="small"
+                      sx={{
+                        color: 'error.main',
+                        '&:hover': {
+                          backgroundColor: 'error.50',
+                        },
+                      }}
+                    >
+                      <Delete />
+                    </IconButton>
+                  </Tooltip>
+                )}
               </Box>
             );
           })}

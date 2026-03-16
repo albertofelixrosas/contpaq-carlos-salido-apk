@@ -838,3 +838,21 @@ export function areAllFilesUploadedThisMonth(): boolean {
   const requiredTypes: UploadFileType[] = ['apk-vueltas', 'apk-gg', 'epk-vueltas', 'epk-gg'];
   return requiredTypes.every(type => history.uploads.some(u => u.fileType === type));
 }
+
+/**
+ * Elimina un archivo específico del historial mensual
+ */
+export function deleteMonthlyUpload(fileType: UploadFileType): void {
+  try {
+    const history = getCurrentMonthHistory();
+    
+    // Filtrar el archivo a eliminar
+    history.uploads = history.uploads.filter(u => u.fileType !== fileType);
+    
+    localStorage.setItem(STORAGE_KEYS.MONTHLY_UPLOAD_HISTORY, JSON.stringify(history));
+    console.log(`🗑️ Archivo eliminado del historial: ${fileType}`);
+  } catch (error) {
+    console.error('Error al eliminar archivo mensual:', error);
+    throw new Error('No se pudo eliminar el archivo del historial');
+  }
+}
